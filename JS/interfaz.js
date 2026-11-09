@@ -33,13 +33,13 @@
         });
     }
 
-    function initVisualForms() {
-        document.querySelectorAll(".form-visual").forEach(function (form) {
-            form.addEventListener("submit", function (event) {
-                event.preventDefault();
-            });
+   function initVisualForms() {
+    document.querySelectorAll(".form-visual").forEach(function (form) {
+        form.addEventListener("submit", function () {
+            // Permite que el formulario se envíe normalmente al controlador.
         });
-    }
+    });
+}
 
     function initMobileNavClose() {
         var sidebar = document.getElementById("sidebarRecursoft");

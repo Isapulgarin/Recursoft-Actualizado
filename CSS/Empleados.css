@@ -1,0 +1,585 @@
+.empleados-page {
+    padding: 28px;
+    color: #243247;
+}
+
+.page-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin: 15px 0 28px;
+}
+
+.empleados-etiqueta {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 7px 13px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+}
+
+.page-heading h2 {
+    margin-top: 12px;
+    margin-bottom: 5px;
+    font-size: 26px;
+    font-weight: 750;
+    color: #17375e;
+}
+
+.page-heading p {
+    color: #718096;
+    margin: 0;
+    font-size: 14px;
+}
+
+.btn-registrar {
+    border: none;
+    border-radius: 9px;
+    padding: 11px 18px;
+    background: #2563eb;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, .18);
+}
+
+.btn-registrar:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+}
+
+.resumen-empleados {
+    margin-bottom: 12px;
+}
+
+.empleado-card {
+    background: #fff;
+    border: 1px solid #e8edf4;
+    border-radius: 13px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 105px;
+    box-shadow: 0 3px 12px rgba(23, 55, 94, .04);
+}
+
+.empleado-card-icono {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+}
+
+.icono-azul {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.icono-verde {
+    background: #eafaf1;
+    color: #16a34a;
+}
+
+.icono-gris {
+    background: #f1f3f6;
+    color: #64748b;
+}
+
+.empleado-card span {
+    color: #718096;
+    font-size: 13px;
+}
+
+.empleado-card h3 {
+    color: #17375e;
+    font-size: 25px;
+    font-weight: 750;
+    margin: 3px 0 0;
+}
+
+.filtros-empleados,
+.tabla-empleados-contenedor {
+    background: #fff;
+    border: 1px solid #e8edf4;
+    border-radius: 13px;
+    margin-bottom: 22px;
+    box-shadow: 0 3px 12px rgba(23, 55, 94, .04);
+}
+
+.filtros-empleados {
+    padding: 22px;
+}
+
+.filtros-header,
+.tabla-empleados-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.filtros-titulo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.filtros-icono {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+}
+
+.filtros-titulo h5,
+.tabla-empleados-encabezado h5 {
+    margin: 0 0 4px;
+    color: #17375e;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.filtros-titulo p,
+.tabla-empleados-encabezado p {
+    margin: 0;
+    color: #8793a3;
+    font-size: 12px;
+}
+
+.filtros-etiqueta {
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.form-filtros .form-label,
+.modal-empleado .form-label {
+    color: #40516a;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 7px;
+}
+
+.buscador-input,
+.filtro-select {
+    position: relative;
+}
+
+.buscador-input > i,
+.filtro-select > i {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8a98aa;
+    z-index: 2;
+}
+
+.buscador-input .form-control,
+.filtro-select .form-select {
+    min-height: 43px;
+    padding-left: 38px;
+    border: 1px solid #dfe6ef;
+    border-radius: 8px;
+    font-size: 13px;
+    box-shadow: none;
+}
+
+.buscador-input .form-control:focus,
+.filtro-select .form-select:focus,
+.modal-empleado .form-control:focus,
+.modal-empleado .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.filtros-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-top: 22px;
+    padding-top: 17px;
+    border-top: 1px solid #edf0f5;
+}
+
+.filtros-info {
+    color: #8793a3;
+    font-size: 12px;
+}
+
+.filtros-info i {
+    color: #2563eb;
+    margin-right: 5px;
+}
+
+.filtros-botones {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-limpiar-filtros,
+.btn-aplicar-filtros {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 15px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+}
+
+.btn-limpiar-filtros {
+    background: #f1f4f8;
+    color: #64748b;
+}
+
+.btn-limpiar-filtros:hover {
+    background: #e5eaf1;
+    color: #334155;
+}
+
+.btn-aplicar-filtros {
+    background: #2563eb;
+    color: #fff;
+}
+
+.btn-aplicar-filtros:hover {
+    background: #1d4ed8;
+}
+
+.tabla-empleados-contenedor {
+    overflow: hidden;
+}
+
+.tabla-empleados-encabezado {
+    padding: 22px 22px 0;
+    margin-bottom: 17px;
+}
+
+.contador-empleados {
+    background: #eff6ff;
+    color: #2563eb;
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.tabla-empleados {
+    margin-bottom: 0;
+    vertical-align: middle;
+    min-width: 950px;
+}
+
+.tabla-empleados thead th {
+    background: #f7f9fc;
+    color: #64748b;
+    border-bottom: 1px solid #e8edf4;
+    padding: 14px 13px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.tabla-empleados tbody td {
+    padding: 15px 13px;
+    color: #526176;
+    font-size: 12px;
+    border-bottom: 1px solid #edf0f5;
+}
+
+.tabla-empleados tbody tr:hover {
+    background: #fafcff;
+}
+
+.id-empleado {
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.empleado-identidad {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 170px;
+}
+
+.empleado-avatar {
+    width: 36px;
+    height: 36px;
+    background: #e8efff;
+    color: #2563eb;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.empleado-identidad strong {
+    display: block;
+    color: #26374d;
+    font-size: 12px;
+}
+
+.empleado-identidad small {
+    display: block;
+    color: #98a3b2;
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.cargo-empleado {
+    background: #f0f5ff;
+    color: #315b9b;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.dato-empleado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.dato-empleado i {
+    color: #8b9bb0;
+}
+
+.estado-empleado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.estado-empleado > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.estado-empleado.activo {
+    background: #eafaf1;
+    color: #15803d;
+}
+
+.estado-empleado.activo > span {
+    background: #16a34a;
+}
+
+.estado-empleado.inactivo {
+    background: #f1f3f6;
+    color: #64748b;
+}
+
+.estado-empleado.inactivo > span {
+    background: #94a3b8;
+}
+
+.acciones-empleado {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.acciones-empleado form {
+    margin: 0;
+}
+
+.btn-accion {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: .2s;
+}
+
+.btn-accion.editar {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.btn-accion.editar:hover {
+    background: #dbeafe;
+}
+
+.btn-accion.desactivar {
+    background: #fff1f2;
+    color: #e11d48;
+}
+
+.btn-accion.desactivar:hover {
+    background: #ffe4e6;
+}
+
+.btn-accion.activar {
+    background: #eafaf1;
+    color: #16a34a;
+}
+
+.btn-accion.activar:hover {
+    background: #dcfce7;
+}
+
+.tabla-vacia {
+    text-align: center;
+    padding: 45px 15px;
+}
+
+.tabla-vacia > i {
+    font-size: 38px;
+    color: #b8c6d8;
+}
+
+.tabla-vacia h6 {
+    margin-top: 12px;
+    color: #40516a;
+    font-weight: 700;
+}
+
+.tabla-vacia p {
+    color: #94a0af;
+    font-size: 12px;
+    margin-bottom: 0;
+}
+
+.modal-empleado {
+    border: none;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.modal-empleado .modal-header {
+    background: #f7f9fc;
+    border-bottom: 1px solid #e8edf4;
+    padding: 20px 24px;
+}
+
+.modal-empleado .modal-title {
+    color: #17375e;
+    font-weight: 750;
+    font-size: 18px;
+}
+
+.modal-empleado .modal-header small {
+    color: #8793a3;
+    font-size: 12px;
+}
+
+.modal-empleado .modal-body {
+    padding: 24px;
+}
+
+.modal-empleado .form-control,
+.modal-empleado .form-select {
+    min-height: 43px;
+    border: 1px solid #dfe6ef;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.modal-empleado .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #edf0f5;
+}
+
+.btn-cancelar {
+    background: #f1f4f8;
+    color: #64748b;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.btn-cancelar:hover {
+    background: #e5eaf1;
+}
+
+.modal-empleado .modal-footer .btn-primary {
+    background: #2563eb;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .empleados-page {
+        padding: 18px 12px;
+    }
+
+    .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .page-heading h2 {
+        font-size: 22px;
+    }
+
+    .btn-registrar {
+        width: 100%;
+    }
+
+    .filtros-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .filtros-botones {
+        width: 100%;
+    }
+
+    .filtros-botones a,
+    .filtros-botones button {
+        flex: 1;
+    }
+
+    .tabla-empleados-encabezado {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

@@ -1,28 +1,34 @@
+
 <?php
-/**
- * RecurSoft - Rutas, sesión y conexión PDO a MySQL.
- */
 
 if (!defined('RS_ROOT')) {
     define('RS_ROOT', dirname(__DIR__));
 }
 
 if (!defined('RS_BASE')) {
-    $documentRoot = isset($_SERVER['DOCUMENT_ROOT'])
-        ? str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT']))
-        : '';
-    $projectRoot = str_replace('\\', '/', realpath(RS_ROOT));
+
+    $documentRoot = realpath($_SERVER['DOCUMENT_ROOT'] ?? '');
+    $projectRoot = realpath(RS_ROOT);
+
+    $documentRoot = str_replace('\\', '/', $documentRoot ?: '');
+    $projectRoot = str_replace('\\', '/', $projectRoot ?: '');
+
     $basePath = '/';
 
-    if ($documentRoot && $projectRoot && strpos($projectRoot, $documentRoot) === 0) {
+    if (
+        $documentRoot !== '' &&
+        $projectRoot !== '' &&
+        strpos($projectRoot, $documentRoot) === 0
+    ) {
         $relative = substr($projectRoot, strlen($documentRoot));
-        $basePath = rtrim(str_replace('\\', '/', $relative), '/') . '/';
-        if ($basePath === '/') {
+        $basePath = rtrim($relative, '/') . '/';
+
+        if ($basePath === '') {
             $basePath = '/';
         }
     }
 
-    define('RS_BASE', $basePath === '//' ? '/' : $basePath);
+    define('RS_BASE', $basePath);
 }
 
 if (!defined('RS_DB_HOST')) {
@@ -37,9 +43,6 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-/**
- * Devuelve la conexión PDO única de la aplicación.
- */
 function rs_pdo(): PDO
 {
     static $pdo = null;
@@ -48,18 +51,34 @@ function rs_pdo(): PDO
         return $pdo;
     }
 
-    $dsn = 'mysql:host=' . RS_DB_HOST . ';dbname=' . RS_DB_NAME . ';charset=' . RS_DB_CHARSET;
+    $dsn = 'mysql:host=' . RS_DB_HOST .
+           ';dbname=' . RS_DB_NAME .
+           ';charset=' . RS_DB_CHARSET;
 
     try {
-        $pdo = new PDO($dsn, RS_DB_USER, RS_DB_PASS, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-        ]);
+
+        $pdo = new PDO(
+            $dsn,
+            RS_DB_USER,
+            RS_DB_PASS,
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false
+            ]
+        );
+
     } catch (PDOException $e) {
+
+        error_log('Error de conexión RecurSoft: ' . $e->getMessage());
+
         http_response_code(500);
-        exit('No fue posible conectar con la base de datos recursoft. Verifique que MySQL esté activo.');
+
+        exit('No fue posible conectar con la base de datos. Verifique que MySQL esté activo.');
     }
 
     return $pdo;
 }
+
+$conexion = rs_pdo();
+
