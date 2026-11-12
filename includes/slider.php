@@ -45,6 +45,9 @@ $activePage = $activePage ?? '';
             <a class="nav-link <?php echo rs_is_active('empleados', $activePage); ?>" href="empleados.php">
                 <i class="bi bi-person-badge"></i><span class="sidebar-text">Empleados</span>
             </a>
+            <a class="nav-link <?php echo rs_is_active('empleados', $activePage); ?>" href="administradores.php">
+                <i class="bi bi-person-badge"></i><span class="sidebar-text">Administradores</span>
+            </a>
             <a class="nav-link <?php echo rs_is_active('categorias', $activePage); ?>" href="categorias.php">
                 <i class="bi bi-tags"></i><span class="sidebar-text">Categorías</span>
             </a>
@@ -68,9 +71,13 @@ $activePage = $activePage ?? '';
         </nav>
 
         <div class="sidebar-footer">
-            <a class="nav-link logout" href="../Index.php">
+            <form method="POST" action="<?php echo rs_h(RS_BASE); ?>controllers/auth.php">
+                <input type="hidden" name="action" value="logout">
+                <?php echo rs_csrf_field(); ?>
+                <button class="nav-link logout" type="submit">
                 <i class="bi bi-box-arrow-left"></i><span class="sidebar-text">Cerrar sesión</span>
-            </a>
+                </button>
+            </form>
         </div>
     </div>
 </aside>

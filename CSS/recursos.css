@@ -711,3 +711,174 @@
         font-size: 10px;
     }
 }
+
+.recursos-page {
+    color: var(--color-text);
+}
+
+.recursos-page .page-heading h1,
+.resumen-card strong,
+.filtros-recursos-header h5,
+.tabla-recursos-header h5,
+.recurso-nombre strong,
+.modal-recurso .modal-title {
+    color: var(--color-text);
+}
+
+.titulo-etiqueta,
+.filtros-recursos-icono,
+.tabla-recursos-header h5 i,
+.seccion-formulario,
+.seccion-formulario i,
+.filtros-recursos-footer > span i {
+    color: var(--color-secondary);
+}
+
+.recursos-page .btn-rs,
+.btn-buscar,
+.btn-modal-guardar {
+    color: var(--color-surface);
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.recursos-page .btn-rs:hover,
+.btn-buscar:hover,
+.btn-modal-guardar:hover {
+    color: var(--color-surface);
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+}
+
+.resumen-card,
+.filtros-recursos,
+.tabla-recursos {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.resumen-icono.azul,
+.resumen-icono.verde,
+.resumen-icono.naranja,
+.resumen-icono.rojo,
+.filtros-recursos-icono,
+.contador-recursos,
+.codigo-recurso,
+.tabla-recursos-vacia > i {
+    color: var(--color-text);
+    background: var(--color-background);
+}
+
+.resumen-card span,
+.filtros-recursos-header p,
+.filtros-recursos-footer > span,
+.tabla-recursos-header p,
+.recurso-nombre small,
+.tabla-recursos-vacia p {
+    color: var(--color-muted);
+}
+
+.filtros-recursos .form-label,
+.filtros-recursos .form-control,
+.filtros-recursos .form-select,
+.modal-recurso .form-label,
+.modal-recurso .form-control,
+.modal-recurso .form-select {
+    color: var(--color-text);
+}
+
+.filtros-recursos .form-control,
+.filtros-recursos .form-select,
+.modal-recurso .form-control,
+.modal-recurso .form-select {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+.filtros-recursos .form-control:focus,
+.filtros-recursos .form-select:focus,
+.modal-recurso .form-control:focus,
+.modal-recurso .form-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+}
+
+.filtros-recursos-header,
+.filtros-recursos-footer,
+.tabla-recursos-header,
+.tabla-recursos thead th,
+.tabla-recursos tbody td,
+.modal-recurso .modal-header,
+.modal-recurso .modal-footer {
+    border-color: var(--color-border);
+}
+
+.tabla-recursos thead th {
+    color: var(--color-surface);
+    background: var(--color-primary);
+}
+
+.tabla-recursos tbody td,
+.categoria-recurso {
+    color: var(--color-text);
+}
+
+.tabla-recursos tbody tr:hover {
+    background: var(--color-background);
+}
+
+.estado-recurso.bueno,
+.disponibilidad-recurso.disponible,
+.disponibilidad-recurso.prestado {
+    color: var(--color-text);
+    background: var(--gris-100);
+}
+
+.estado-recurso.regular,
+.disponibilidad-recurso.mantenimiento {
+    color: #514500;
+    background: #fff8cc;
+}
+
+.estado-recurso.dañado {
+    color: #8f1515;
+    background: #fff0f0;
+}
+
+.btn-recurso-editar {
+    color: var(--color-text);
+    background: var(--color-background);
+}
+
+.btn-recurso-editar:hover {
+    color: var(--color-surface);
+    background: var(--color-primary);
+}
+
+.btn-recurso-eliminar {
+    color: var(--color-danger);
+    background: #fff0f0;
+}
+
+.btn-recurso-eliminar:hover {
+    color: var(--color-surface);
+    background: var(--color-danger);
+}
+
+.modal-recurso .modal-header,
+.modal-recurso .modal-footer {
+    background: var(--color-background);
+}
+
+.btn-modal-cancelar {
+    color: var(--color-secondary);
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+.btn-modal-cancelar:hover {
+    color: var(--color-text);
+    background: var(--gris-100);
+}

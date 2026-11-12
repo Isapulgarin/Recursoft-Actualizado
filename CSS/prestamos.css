@@ -4,15 +4,15 @@
 ===================================================== */
 
 :root {
-    --prestamo-primary: #2563eb;
-    --prestamo-primary-dark: #1d4ed8;
-    --prestamo-sidebar: #17375e;
-    --prestamo-bg: #f4f7fc;
-    --prestamo-white: #ffffff;
-    --prestamo-text: #243247;
-    --prestamo-muted: #718096;
-    --prestamo-border: #e2e8f0;
-    --prestamo-shadow: 0 5px 20px rgba(23, 55, 94, 0.07);
+    --prestamo-primary: var(--color-primary);
+    --prestamo-primary-dark: var(--color-secondary);
+    --prestamo-sidebar: var(--color-primary);
+    --prestamo-bg: var(--color-background);
+    --prestamo-white: var(--color-surface);
+    --prestamo-text: var(--color-text);
+    --prestamo-muted: var(--color-muted);
+    --prestamo-border: var(--color-border);
+    --prestamo-shadow: var(--shadow-sm);
     --prestamo-radius: 14px;
 }
 
@@ -50,21 +50,21 @@
 /* BOTÓN PRINCIPAL */
 
 .btn-prestamo-principal {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: var(--color-primary);
     border: none;
     border-radius: 10px;
     padding: 11px 19px;
     color: #fff;
     font-weight: 600;
     font-size: 13px;
-    box-shadow: 0 5px 12px rgba(37, 99, 235, 0.2);
+    box-shadow: var(--shadow-sm);
     transition: all .25s ease;
 }
 
 .btn-prestamo-principal:hover {
-    background: linear-gradient(135deg, #1d4ed8, #173ea8);
+    background: var(--color-secondary);
     transform: translateY(-2px);
-    box-shadow: 0 8px 17px rgba(37, 99, 235, 0.27);
+    box-shadow: var(--shadow);
     color: #fff;
 }
 
@@ -99,7 +99,7 @@
     height: 49px;
     min-width: 49px;
     border-radius: 13px;
-    background: #eaf1ff;
+    background: var(--color-background);
     color: var(--prestamo-primary);
     display: flex;
     justify-content: center;
@@ -169,7 +169,7 @@
 .filtros-prestamos .form-control:focus,
 .filtros-prestamos .form-select:focus {
     border-color: var(--prestamo-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 /* TABLA */
@@ -198,7 +198,7 @@
 }
 
 .contador-prestamos {
-    background: #eaf1ff;
+    background: var(--color-background);
     color: var(--prestamo-primary);
     font-size: 12px;
     font-weight: 700;
@@ -298,28 +298,28 @@
 }
 
 .estado-prestamo.activo {
-    color: #167348;
-    background: #dcfce7;
+    color: var(--color-text);
+    background: var(--gris-100);
 }
 
 .estado-prestamo.pendiente {
-    color: #a16207;
-    background: #fef3c7;
+    color: #514500;
+    background: #fff8cc;
 }
 
 .estado-prestamo.vencido {
-    color: #b42318;
-    background: #fee2e2;
+    color: #8f1515;
+    background: #fff0f0;
 }
 
 .estado-prestamo.devuelto {
-    color: #1d4ed8;
-    background: #dbeafe;
+    color: #123b91;
+    background: #eef3ff;
 }
 
 .estado-prestamo.cancelado {
-    color: #64748b;
-    background: #e2e8f0;
+    color: var(--color-muted);
+    background: var(--gris-100);
 }
 
 /* ACCIONES */
@@ -369,7 +369,7 @@
 }
 
 .modal-prestamo .modal-header {
-    background: linear-gradient(135deg, #17375e, #2563eb);
+    background: var(--color-primary);
     color: white;
     padding: 22px 25px;
     border: none;
@@ -435,7 +435,7 @@
 .modal-prestamo .form-control:focus,
 .modal-prestamo .form-select:focus {
     border-color: var(--prestamo-primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: var(--focus-ring);
 }
 
 .modal-prestamo .form-control[readonly] {
@@ -564,5 +564,55 @@
 
     .prestamo-card {
         padding: 16px;
+    }
+}
+/* CORREGIR DESPLAZAMIENTO DEL MODAL DE PRÉSTAMOS */
+
+#modalPrestamo .modal-dialog {
+    max-height: calc(100vh - 2rem);
+    margin: 1rem auto;
+}
+
+#modalPrestamo .modal-content {
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#modalPrestamo .modal-content form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#modalPrestamo .modal-header,
+#modalPrestamo .modal-footer {
+    flex-shrink: 0;
+}
+
+#modalPrestamo .modal-body {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100vh - 190px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 576px) {
+    #modalPrestamo .modal-dialog {
+        margin: 0.5rem;
+        max-height: calc(100vh - 1rem);
+    }
+
+    #modalPrestamo .modal-content {
+        max-height: calc(100vh - 1rem);
+    }
+
+    #modalPrestamo .modal-body {
+        max-height: calc(100vh - 150px);
     }
 }

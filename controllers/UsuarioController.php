@@ -1,15 +1,15 @@
 
 <?php
-require_once __DIR__ . '/../config/conexion.php';
+require_once __DIR__ . '/../includes/auth.php';
+rs_requiere_admin();
+$conexion = rs_pdo();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ../dashboardAD/usuarios.php');
-    exit;
+    rs_redirect('dashboardAD/usuarios.php');
 }
 
 function volver($mensaje) {
-    header('Location: ../dashboardAD/usuarios.php?mensaje=' . urlencode($mensaje));
-    exit;
+    rs_redirect('dashboardAD/usuarios.php?mensaje=' . urlencode($mensaje));
 }
 
 try {

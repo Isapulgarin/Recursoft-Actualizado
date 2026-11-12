@@ -583,3 +583,146 @@
         flex-direction: column;
     }
 }
+
+.empleados-page {
+    color: var(--color-text);
+}
+
+.empleados-page .page-heading h2,
+.empleados-page .filtros-titulo h5,
+.empleados-page .tabla-empleados-encabezado h5,
+.empleados-page .empleado-card h3,
+.empleados-page .empleado-identidad strong {
+    color: var(--color-text);
+}
+
+.empleados-etiqueta,
+.filtros-etiqueta,
+.filtros-icono,
+.empleado-card-icono,
+.id-empleado,
+.empleado-avatar,
+.cargo-empleado {
+    color: var(--color-text);
+    background: var(--color-background);
+}
+
+.btn-registrar,
+.btn-aplicar-filtros,
+.modal-empleado .modal-footer .btn-primary {
+    color: var(--color-surface);
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-registrar:hover,
+.btn-aplicar-filtros:hover,
+.modal-empleado .modal-footer .btn-primary:hover {
+    color: var(--color-surface);
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+}
+
+.empleado-card,
+.filtros-empleados,
+.tabla-empleados-contenedor {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.empleados-page .filtros-titulo p,
+.empleados-page .tabla-empleados-encabezado p,
+.empleados-page .empleado-card span,
+.empleados-page .empleado-identidad small,
+.empleados-page .dato-empleado i,
+.empleados-page .tabla-vacia p {
+    color: var(--color-muted);
+}
+
+.empleados-page .form-control,
+.empleados-page .form-select {
+    border-color: var(--color-border);
+    color: var(--color-text);
+    background-color: var(--color-surface);
+}
+
+.empleados-page .form-control:focus,
+.empleados-page .form-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+}
+
+.empleados-page .filtros-footer,
+.empleados-page .modal-empleado .modal-footer {
+    border-color: var(--color-border);
+}
+
+.btn-limpiar-filtros,
+.btn-cancelar {
+    color: var(--color-secondary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
+.btn-limpiar-filtros:hover,
+.btn-cancelar:hover {
+    color: var(--color-text);
+    background: var(--color-background);
+}
+
+.tabla-empleados thead th {
+    color: var(--color-surface);
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.tabla-empleados tbody td {
+    color: var(--color-text);
+    border-color: var(--color-border);
+}
+
+.tabla-empleados tbody tr:hover {
+    background: var(--color-background);
+}
+
+.estado-empleado.activo,
+.estado-empleado.inactivo {
+    color: var(--color-text);
+    background: var(--gris-100);
+}
+
+.estado-empleado.activo > span,
+.estado-empleado.inactivo > span {
+    background: var(--color-secondary);
+}
+
+.btn-accion.editar,
+.btn-accion.activar {
+    color: var(--color-text);
+    background: var(--color-background);
+}
+
+.btn-accion.editar:hover,
+.btn-accion.activar:hover {
+    background: var(--color-border);
+}
+
+.btn-accion.desactivar {
+    color: var(--color-danger);
+    background: #fff0f0;
+}
+
+.btn-accion.desactivar:hover {
+    background: #ffe0e0;
+}
+
+.modal-empleado .modal-header {
+    background: var(--color-background);
+    border-color: var(--color-border);
+}
+
+.modal-empleado .modal-title {
+    color: var(--color-text);
+}

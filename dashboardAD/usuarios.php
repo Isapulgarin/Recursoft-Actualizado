@@ -1,6 +1,8 @@
 
 <?php
-require_once __DIR__ . '/../config/conexion.php';
+require_once __DIR__ . '/../includes/auth.php';
+rs_requiere_admin();
+$conexion = rs_pdo();
 
 function limpiar($valor) {
     return htmlspecialchars((string)($valor ?? ''), ENT_QUOTES, 'UTF-8');

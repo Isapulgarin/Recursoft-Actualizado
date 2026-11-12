@@ -4,14 +4,26 @@
  */
 require_once __DIR__ . '/../config/conexion.php';
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/auth.php';
+
+$requestedDirectory = basename(dirname($_SERVER['SCRIPT_FILENAME'] ?? ''));
+if ($requestedDirectory === 'dashboardAD') {
+    rs_requiere_admin();
+} elseif ($requestedDirectory === 'dashboardEM') {
+    rs_requiere_empleado();
+}
 
 $pageTitle = $pageTitle ?? 'RecurSoft';
 $dashboardType = $dashboardType ?? 'login';
 $bodyClass = $bodyClass ?? '';
 
 if ($dashboardType === 'AD') {
+    rs_requiere_admin();
+    header('Cache-Control: no-store, private');
     $bodyClass .= ' role-admin';
 } elseif ($dashboardType === 'EM') {
+    rs_requiere_empleado();
+    header('Cache-Control: no-store, private');
     $bodyClass .= ' role-employee';
 }
 ?>
@@ -22,7 +34,7 @@ if ($dashboardType === 'AD') {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="RecurSoft - Sistema de Gestión de Recursos Institucionales">
-    <meta name="theme-color" content="#32578b">
+    <meta name="theme-color" content="#000000">
     <title><?php echo rs_h($pageTitle); ?> | RecurSoft</title>
 
     <link rel="icon" href="<?php echo rs_h(RS_BASE); ?>IMG/logo.png" type="image/png">

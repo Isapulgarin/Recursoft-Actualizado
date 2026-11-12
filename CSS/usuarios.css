@@ -1,22 +1,22 @@
 
 :root {
-    --color1: #32578b;
-    --color2: #4b6ea4;
-    --color3: #6485bd;
-    --color4: #7c9cd5;
-    --color5: #95b3ee;
+    --color1: var(--color-primary);
+    --color2: var(--color-secondary);
+    --color3: var(--color-secondary);
+    --color4: var(--color-border);
+    --color5: var(--color-background);
 
-    --blanco: #ffffff;
-    --gris-50: #f5f7fb;
-    --gris-100: #eef2f8;
-    --gris-200: #dce4f0;
-    --gris-400: #8a97ab;
-    --gris-600: #5c6b80;
-    --gris-800: #243044;
+    --blanco: var(--color-surface);
+    --gris-50: var(--color-background);
+    --gris-100: #eeeeee;
+    --gris-200: var(--color-border);
+    --gris-400: #777777;
+    --gris-600: var(--color-muted);
+    --gris-800: var(--color-text);
 
     --radius: 15px;
     --radius-sm: 10px;
-    --shadow: 0 8px 24px rgba(50, 87, 139, 0.08);
+    --shadow: var(--shadow-sm);
     --transition: 0.22s ease;
     --font: "Plus Jakarta Sans", "Segoe UI", sans-serif;
 }
@@ -443,7 +443,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--color1), var(--color4));
+    background: var(--color-primary);
     color: var(--blanco);
     border-radius: 12px;
     font-size: 15px;
@@ -609,7 +609,7 @@
 }
 
 .modal-usuario .modal-header {
-    background: linear-gradient(120deg, var(--color1), var(--color2));
+    background: var(--color-primary);
     color: var(--blanco);
     padding: 22px 25px;
     border: none;
@@ -702,6 +702,144 @@
     .usuario-card {
         padding: 17px;
     }
+}
+
+.usuarios-page .page-heading h2,
+.usuarios-page .tabla-usuarios-encabezado h5,
+.usuario-card h3,
+.usuario-identidad strong,
+.tabla-vacia h6 {
+    color: var(--color-text);
+}
+
+.usuarios-etiqueta,
+.filtros-icono,
+.filtros-etiqueta,
+.contador-usuarios,
+.id-usuario,
+.rol-usuario,
+.usuario-avatar,
+.icono-azul,
+.icono-verde,
+.icono-gris {
+    color: var(--color-text);
+    background: var(--color-background);
+}
+
+.usuario-avatar {
+    background: var(--color-primary);
+    color: var(--color-surface);
+}
+
+.usuario-card,
+.filtros-usuarios,
+.tabla-usuarios-contenedor {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.usuario-card:hover {
+    box-shadow: var(--shadow);
+}
+
+.usuarios-page .form-control,
+.usuarios-page .form-select,
+.modal-usuario .form-control,
+.modal-usuario .form-select {
+    color: var(--color-text);
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+.usuarios-page .form-control:focus,
+.usuarios-page .form-select:focus,
+.modal-usuario .form-control:focus,
+.modal-usuario .form-select:focus {
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+}
+
+.filtros-header,
+.filtros-footer,
+.tabla-usuarios thead th,
+.tabla-usuarios tbody td {
+    border-color: var(--color-border);
+}
+
+.tabla-usuarios thead th {
+    color: var(--color-surface);
+    background: var(--color-primary);
+}
+
+.tabla-usuarios tbody td,
+.usuario-identidad small,
+.dato-usuario i,
+.tabla-vacia p {
+    color: var(--color-text);
+}
+
+.tabla-usuarios tbody tr:nth-child(even),
+.tabla-usuarios tbody tr:hover {
+    background: var(--color-background);
+}
+
+.estado-usuario.activo,
+.estado-usuario.inactivo {
+    color: var(--color-text);
+    background: var(--gris-100);
+}
+
+.estado-usuario.activo span,
+.estado-usuario.inactivo span {
+    background: var(--color-secondary);
+}
+
+.btn-accion.editar {
+    color: var(--color-text);
+    background: var(--color-background);
+    border-color: var(--color-border);
+}
+
+.btn-accion.editar:hover {
+    color: var(--color-surface);
+    background: var(--color-primary);
+}
+
+.btn-accion.eliminar {
+    color: var(--color-danger);
+    background: #fff0f0;
+    border-color: #e7a5a5;
+}
+
+.btn-accion.eliminar:hover {
+    color: var(--color-surface);
+    background: var(--color-danger);
+}
+
+.modal-usuario .modal-header {
+    color: var(--color-surface);
+    background: var(--color-primary);
+}
+
+.modal-usuario .modal-header small {
+    color: var(--gris-100);
+}
+
+.modal-usuario .modal-footer {
+    background: var(--color-background);
+    border-color: var(--color-border);
+}
+
+.modal-usuario .btn-cancelar {
+    color: var(--color-secondary);
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+
+.modal-usuario .btn-cancelar:hover {
+    color: var(--color-text);
+    background: var(--gris-100);
 }
 
 @media (max-width: 768px) {

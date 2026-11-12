@@ -8,7 +8,7 @@ body.role-admin .page-heading h1::after {
     width: 48px;
     height: 4px;
     border-radius: 99px;
-    background: var(--color3);
+    background: var(--color-accent);
     margin-top: 0.45rem;
 }
 
@@ -17,8 +17,9 @@ body.role-admin .quick-access i {
 }
 
 .admin-hero {
-    background: linear-gradient(120deg, var(--color1), var(--color3));
-    color: var(--blanco);
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius);
     padding: 1.25rem 1.2rem;
 }
@@ -31,5 +32,5 @@ body.role-admin .quick-access i {
 
 .admin-hero p {
     margin: 0.35rem 0 0;
-    opacity: 0.9;
+    color: var(--color-muted);
 }

@@ -13,7 +13,7 @@
     padding: 0.35rem 0.7rem;
     border-radius: 999px;
     background: var(--gris-100);
-    color: var(--color1);
+    color: var(--color-text);
     font-size: 0.78rem;
     font-weight: 600;
     border: 1px solid var(--gris-200);
@@ -36,13 +36,13 @@
     display: inline-block;
 }
 
-.legend-dot.ok { background: var(--color3); }
-.legend-dot.warn { background: #e2b93b; }
-.legend-dot.danger { background: #d36565; }
+.legend-dot.ok { background: var(--color-secondary); }
+.legend-dot.warn { background: var(--color-accent); }
+.legend-dot.danger { background: var(--color-danger); }
 
 .profile-cover {
     height: 92px;
-    background: linear-gradient(90deg, var(--color1), var(--color4));
+    background: var(--color-secondary);
     border-radius: var(--radius) var(--radius) 0 0;
 }
 

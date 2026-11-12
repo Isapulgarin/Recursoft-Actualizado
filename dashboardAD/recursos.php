@@ -1,5 +1,8 @@
 <?php
 
+require_once __DIR__ . '/../includes/auth.php';
+rs_requiere_admin();
+
 $pageTitle = 'Recursos';
 $dashboardType = 'AD';
 $activePage = 'recursos';
