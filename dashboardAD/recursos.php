@@ -1,13 +1,21 @@
-<?php
 
+<?php
+/**
+ * RecurSoft - Gestión de recursos.
+ */
+
+// 1. Autenticación antes de generar HTML.
 require_once __DIR__ . '/../includes/auth.php';
+
 rs_requiere_admin();
 
+// 2. Configuración de la página.
 $pageTitle = 'Recursos';
 $dashboardType = 'AD';
 $activePage = 'recursos';
 
-require_once __DIR__ . '/../config/conexion.php';
+// auth.php ya carga conexion.php.
+$conexion = rs_pdo();
 
 $mensaje = $_GET['mensaje'] ?? '';
 $buscar = trim($_GET['buscar'] ?? '');
@@ -17,6 +25,13 @@ $disponibilidadFiltro = $_GET['disponibilidad'] ?? '';
 
 $recursos = [];
 $categorias = [];
+$estadisticas = [
+    'total' => 0,
+    'disponibles' => 0,
+    'prestados' => 0,
+    'mantenimiento' => 0
+];
+
 $errorConsulta = false;
 
 $estadosValidos = ['', 'Bueno', 'Regular', 'Dañado'];
@@ -37,12 +52,28 @@ if (!in_array($disponibilidadFiltro, $disponibilidadesValidas, true)) {
     $disponibilidadFiltro = '';
 }
 
-if ($categoriaFiltro !== '' && !ctype_digit((string) $categoriaFiltro)) {
+if (
+    $categoriaFiltro !== '' &&
+    !ctype_digit((string) $categoriaFiltro)
+) {
     $categoriaFiltro = '';
+}
+
+/**
+ * Escapar valores para mostrarlos en HTML.
+ */
+function h($valor): string
+{
+    return htmlspecialchars(
+        (string) ($valor ?? ''),
+        ENT_QUOTES,
+        'UTF-8'
+    );
 }
 
 try {
 
+    // CONSULTA DE RECURSOS CON FILTROS.
     $sql = "
         SELECT
             r.id_recurso,
@@ -54,13 +85,18 @@ try {
             r.marca,
             r.modelo,
             r.estado,
+            r.stock_total,
+            r.stock_disponible,
             r.disponibilidad,
             r.fecha_registro,
             r.fecha_adquisicion,
             c.nombre_categoria
+
         FROM recurso r
+
         LEFT JOIN categoria_recurso c
             ON r.id_categoria = c.id_categoria
+
         WHERE 1 = 1
     ";
 
@@ -75,6 +111,7 @@ try {
                 OR r.serial LIKE :serial
                 OR r.marca LIKE :marca
                 OR r.modelo LIKE :modelo
+                OR r.descripcion LIKE :descripcion
             )
         ";
 
@@ -85,6 +122,7 @@ try {
         $parametros[':serial'] = $termino;
         $parametros[':marca'] = $termino;
         $parametros[':modelo'] = $termino;
+        $parametros[':descripcion'] = $termino;
     }
 
     if ($categoriaFiltro !== '') {
@@ -109,8 +147,12 @@ try {
 
     $recursos = $consulta->fetchAll(PDO::FETCH_ASSOC);
 
+
+    // CONSULTAR CATEGORÍAS.
     $consultaCategorias = $conexion->prepare("
-        SELECT id_categoria, nombre_categoria
+        SELECT
+            id_categoria,
+            nombre_categoria
         FROM categoria_recurso
         ORDER BY nombre_categoria ASC
     ");
@@ -119,12 +161,58 @@ try {
 
     $categorias = $consultaCategorias->fetchAll(PDO::FETCH_ASSOC);
 
+
+    // ESTADÍSTICAS GENERALES SIN APLICAR FILTROS.
+    $consultaEstadisticas = $conexion->query("
+        SELECT
+            COUNT(*) AS total,
+
+            SUM(
+                CASE
+                    WHEN disponibilidad = 'Disponible' THEN 1
+                    ELSE 0
+                END
+            ) AS disponibles,
+
+            SUM(
+                CASE
+                    WHEN disponibilidad = 'Prestado' THEN 1
+                    ELSE 0
+                END
+            ) AS prestados,
+
+            SUM(
+                CASE
+                    WHEN disponibilidad = 'Mantenimiento' THEN 1
+                    ELSE 0
+                END
+            ) AS mantenimiento
+
+        FROM recurso
+    ");
+
+    $resultadoEstadisticas = $consultaEstadisticas->fetch(PDO::FETCH_ASSOC);
+
+    if ($resultadoEstadisticas) {
+        $estadisticas = [
+            'total' => (int) ($resultadoEstadisticas['total'] ?? 0),
+            'disponibles' => (int) ($resultadoEstadisticas['disponibles'] ?? 0),
+            'prestados' => (int) ($resultadoEstadisticas['prestados'] ?? 0),
+            'mantenimiento' => (int) ($resultadoEstadisticas['mantenimiento'] ?? 0)
+        ];
+    }
+
 } catch (PDOException $e) {
 
-    error_log('Error al cargar recursos: ' . $e->getMessage());
+    error_log(
+        'Error al cargar recursos de RecurSoft: ' . $e->getMessage()
+    );
+
     $errorConsulta = true;
 }
 
+
+// 3. Cargar estructura visual después de las consultas.
 require_once __DIR__ . '/../includes/head.php';
 require_once __DIR__ . '/../includes/slider.php';
 require_once __DIR__ . '/../includes/navbar.php';
@@ -135,6 +223,8 @@ require_once __DIR__ . '/../includes/navbar.php';
 
 <main class="main-content recursos-page">
 
+    <!-- ENCABEZADO -->
+
     <div class="page-heading d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 section-gap">
 
         <div>
@@ -144,6 +234,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             </span>
 
             <h1>Gestión de recursos</h1>
+
             <p>Administra y controla los bienes registrados en RecurSoft.</p>
         </div>
 
@@ -160,106 +251,90 @@ require_once __DIR__ . '/../includes/navbar.php';
 
     </div>
 
+
+    <!-- MENSAJES -->
+
     <?php if ($mensaje !== ''): ?>
 
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-
-            <i class="bi bi-info-circle me-2"></i>
-
-            <?= htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8') ?>
+        <div class="alert alert-info alert-dismissible fade show">
+            <?= h($mensaje) ?>
 
             <button
                 type="button"
                 class="btn-close"
                 data-bs-dismiss="alert"
+                aria-label="Cerrar"
             ></button>
-
         </div>
 
     <?php endif; ?>
+
 
     <?php if ($errorConsulta): ?>
 
         <div class="alert alert-danger">
             No fue posible cargar los recursos o las categorías.
-            Revisa la conexión y los nombres de las columnas.
+            Revisa la conexión con la base de datos y los nombres de las columnas.
         </div>
 
     <?php else: ?>
 
+
+        <!-- TARJETAS DE RESUMEN -->
+
         <div class="resumen-recursos">
 
             <div class="resumen-card">
-
                 <div class="resumen-icono azul">
                     <i class="bi bi-box-seam"></i>
                 </div>
 
                 <div>
                     <span>Total de recursos</span>
-                    <strong><?= count($recursos) ?></strong>
+                    <strong><?= $estadisticas['total'] ?></strong>
                 </div>
-
             </div>
 
-            <div class="resumen-card">
 
+            <div class="resumen-card">
                 <div class="resumen-icono verde">
                     <i class="bi bi-check-circle"></i>
                 </div>
 
                 <div>
                     <span>Disponibles</span>
-
-                    <strong>
-                        <?= count(array_filter(
-                            $recursos,
-                            fn($r) => $r['disponibilidad'] === 'Disponible'
-                        )) ?>
-                    </strong>
+                    <strong><?= $estadisticas['disponibles'] ?></strong>
                 </div>
-
             </div>
 
-            <div class="resumen-card">
 
+            <div class="resumen-card">
                 <div class="resumen-icono naranja">
                     <i class="bi bi-arrow-left-right"></i>
                 </div>
 
                 <div>
                     <span>Prestados</span>
-
-                    <strong>
-                        <?= count(array_filter(
-                            $recursos,
-                            fn($r) => $r['disponibilidad'] === 'Prestado'
-                        )) ?>
-                    </strong>
+                    <strong><?= $estadisticas['prestados'] ?></strong>
                 </div>
-
             </div>
 
-            <div class="resumen-card">
 
+            <div class="resumen-card">
                 <div class="resumen-icono rojo">
                     <i class="bi bi-tools"></i>
                 </div>
 
                 <div>
                     <span>En mantenimiento</span>
-
-                    <strong>
-                        <?= count(array_filter(
-                            $recursos,
-                            fn($r) => $r['disponibilidad'] === 'Mantenimiento'
-                        )) ?>
-                    </strong>
+                    <strong><?= $estadisticas['mantenimiento'] ?></strong>
                 </div>
-
             </div>
 
         </div>
+
+
+        <!-- FILTROS -->
 
         <section class="filtros-recursos">
 
@@ -276,18 +351,18 @@ require_once __DIR__ . '/../includes/navbar.php';
 
             </div>
 
+
             <form method="GET" action="recursos.php">
 
                 <div class="row g-3">
 
                     <div class="col-lg-4 col-md-6">
 
-                        <label for="buscarRecurso" class="form-label">
+                        <label class="form-label" for="buscarRecurso">
                             Buscar recurso
                         </label>
 
                         <div class="campo-icono">
-
                             <i class="bi bi-search"></i>
 
                             <input
@@ -296,16 +371,16 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 name="buscar"
                                 type="search"
                                 placeholder="Código, nombre, serial o marca..."
-                                value="<?= htmlspecialchars($buscar, ENT_QUOTES, 'UTF-8') ?>"
+                                value="<?= h($buscar) ?>"
                             >
-
                         </div>
 
                     </div>
 
+
                     <div class="col-lg-2 col-md-6">
 
-                        <label for="filtroCategoria" class="form-label">
+                        <label class="form-label" for="filtroCategoria">
                             Categoría
                         </label>
 
@@ -323,11 +398,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     value="<?= (int) $categoria['id_categoria'] ?>"
                                     <?= $categoriaFiltro === (string) $categoria['id_categoria'] ? 'selected' : '' ?>
                                 >
-                                    <?= htmlspecialchars(
-                                        $categoria['nombre_categoria'] ?? '',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    ) ?>
+                                    <?= h($categoria['nombre_categoria']) ?>
                                 </option>
 
                             <?php endforeach; ?>
@@ -336,9 +407,10 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                     </div>
 
+
                     <div class="col-lg-3 col-md-6">
 
-                        <label for="filtroEstado" class="form-label">
+                        <label class="form-label" for="filtroEstado">
                             Estado físico
                         </label>
 
@@ -350,25 +422,25 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                             <option value="">Todos</option>
 
-                            <option value="Bueno" <?= $estadoFiltro === 'Bueno' ? 'selected' : '' ?>>
-                                Bueno
-                            </option>
+                            <?php foreach (['Bueno', 'Regular', 'Dañado'] as $estado): ?>
 
-                            <option value="Regular" <?= $estadoFiltro === 'Regular' ? 'selected' : '' ?>>
-                                Regular
-                            </option>
+                                <option
+                                    value="<?= h($estado) ?>"
+                                    <?= $estadoFiltro === $estado ? 'selected' : '' ?>
+                                >
+                                    <?= h($estado) ?>
+                                </option>
 
-                            <option value="Dañado" <?= $estadoFiltro === 'Dañado' ? 'selected' : '' ?>>
-                                Dañado
-                            </option>
+                            <?php endforeach; ?>
 
                         </select>
 
                     </div>
 
+
                     <div class="col-lg-3 col-md-6">
 
-                        <label for="filtroDisponibilidad" class="form-label">
+                        <label class="form-label" for="filtroDisponibilidad">
                             Disponibilidad
                         </label>
 
@@ -380,27 +452,23 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                             <option value="">Todas</option>
 
-                            <option value="Disponible" <?= $disponibilidadFiltro === 'Disponible' ? 'selected' : '' ?>>
-                                Disponible
-                            </option>
+                            <?php foreach (array_slice($disponibilidadesValidas, 1) as $disponibilidad): ?>
 
-                            <option value="Prestado" <?= $disponibilidadFiltro === 'Prestado' ? 'selected' : '' ?>>
-                                Prestado
-                            </option>
+                                <option
+                                    value="<?= h($disponibilidad) ?>"
+                                    <?= $disponibilidadFiltro === $disponibilidad ? 'selected' : '' ?>
+                                >
+                                    <?= h($disponibilidad) ?>
+                                </option>
 
-                            <option value="Mantenimiento" <?= $disponibilidadFiltro === 'Mantenimiento' ? 'selected' : '' ?>>
-                                Mantenimiento
-                            </option>
-
-                            <option value="Fuera de servicio" <?= $disponibilidadFiltro === 'Fuera de servicio' ? 'selected' : '' ?>>
-                                Fuera de servicio
-                            </option>
+                            <?php endforeach; ?>
 
                         </select>
 
                     </div>
 
                 </div>
+
 
                 <div class="filtros-recursos-footer">
 
@@ -429,19 +497,20 @@ require_once __DIR__ . '/../includes/navbar.php';
 
         </section>
 
+
+        <!-- TABLA DE RECURSOS -->
+
         <section class="tabla-recursos">
 
             <div class="tabla-recursos-header">
 
                 <div>
-
                     <h5>
                         <i class="bi bi-list-ul me-2"></i>
                         Recursos registrados
                     </h5>
 
                     <p>Listado de bienes institucionales.</p>
-
                 </div>
 
                 <span class="contador-recursos">
@@ -450,23 +519,29 @@ require_once __DIR__ . '/../includes/navbar.php';
 
             </div>
 
+
             <div class="table-responsive">
 
                 <table class="table table-hover align-middle mb-0">
 
                     <thead>
-
                         <tr>
                             <th>Código</th>
                             <th>Recurso</th>
                             <th>Categoría</th>
                             <th>Serial</th>
+                            <th>Marca</th>
+                            <th>Modelo</th>
                             <th>Estado físico</th>
+                            <th>Stock total</th>
+                            <th>Stock disponible</th>
                             <th>Disponibilidad</th>
+                            <th>Fecha registro</th>
+                            <th>Fecha adquisición</th>
                             <th>Acciones</th>
                         </tr>
-
                     </thead>
+
 
                     <tbody>
 
@@ -478,82 +553,103 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                                 <td>
                                     <span class="codigo-recurso">
-                                        <?= htmlspecialchars(
-                                            $recurso['codigo_interno'] ?? '',
-                                            ENT_QUOTES,
-                                            'UTF-8'
-                                        ) ?>
+                                        <?= h($recurso['codigo_interno']) ?>
                                     </span>
                                 </td>
 
-                                <td>
 
+                                <td>
                                     <div class="recurso-nombre">
 
                                         <strong>
-                                            <?= htmlspecialchars(
-                                                $recurso['nombre_recurso'] ?? '',
-                                                ENT_QUOTES,
-                                                'UTF-8'
-                                            ) ?>
+                                            <?= h($recurso['nombre_recurso']) ?>
                                         </strong>
 
                                         <small>
-                                            <?= htmlspecialchars(
-                                                trim(
-                                                    ($recurso['marca'] ?? '') . ' ' .
-                                                    ($recurso['modelo'] ?? '')
-                                                ),
-                                                ENT_QUOTES,
-                                                'UTF-8'
+                                            <?= h(
+                                                $recurso['descripcion']
+                                                ?: 'Sin descripción'
                                             ) ?>
                                         </small>
 
                                     </div>
-
                                 </td>
+
 
                                 <td>
                                     <span class="categoria-recurso">
-                                        <?= htmlspecialchars(
-                                            $recurso['nombre_categoria'] ?? 'Sin categoría',
-                                            ENT_QUOTES,
-                                            'UTF-8'
+                                        <?= h(
+                                            $recurso['nombre_categoria']
+                                            ?? 'Sin categoría'
                                         ) ?>
                                     </span>
                                 </td>
 
+
                                 <td>
-                                    <?= htmlspecialchars(
-                                        $recurso['serial'] ?: 'Sin serial',
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    ) ?>
+                                    <?= h($recurso['serial'] ?: 'Sin serial') ?>
                                 </td>
+
+
+                                <td>
+                                    <?= h($recurso['marca'] ?: 'Sin marca') ?>
+                                </td>
+
+
+                                <td>
+                                    <?= h($recurso['modelo'] ?: 'Sin modelo') ?>
+                                </td>
+
 
                                 <td>
                                     <span class="estado-recurso">
-                                        <?= htmlspecialchars(
-                                            $recurso['estado'] ?? '',
-                                            ENT_QUOTES,
-                                            'UTF-8'
-                                        ) ?>
+                                        <?= h($recurso['estado']) ?>
                                     </span>
                                 </td>
 
+
+                                <td>
+                                    <strong>
+                                        <?= (int) $recurso['stock_total'] ?>
+                                    </strong>
+                                </td>
+
+
+                                <td>
+                                    <strong>
+                                        <?= (int) $recurso['stock_disponible'] ?>
+                                    </strong>
+                                </td>
+
+
                                 <td>
                                     <span class="disponibilidad-recurso">
-                                        <?= htmlspecialchars(
-                                            $recurso['disponibilidad'] ?? '',
-                                            ENT_QUOTES,
-                                            'UTF-8'
-                                        ) ?>
+                                        <?= h($recurso['disponibilidad']) ?>
                                     </span>
                                 </td>
+
+
+                                <td>
+                                    <?= h(
+                                        $recurso['fecha_registro']
+                                        ?: 'No registrada'
+                                    ) ?>
+                                </td>
+
+
+                                <td>
+                                    <?= h(
+                                        $recurso['fecha_adquisicion']
+                                        ?: 'No registrada'
+                                    ) ?>
+                                </td>
+
 
                                 <td>
 
                                     <div class="acciones-recurso">
+
+                                        <!-- EDITAR -->
 
                                         <button
                                             type="button"
@@ -561,20 +657,26 @@ require_once __DIR__ . '/../includes/navbar.php';
                                             title="Editar recurso"
                                             data-bs-toggle="modal"
                                             data-bs-target="#modalRecurso"
+
                                             data-id="<?= (int) $recurso['id_recurso'] ?>"
                                             data-categoria="<?= (int) $recurso['id_categoria'] ?>"
-                                            data-codigo="<?= htmlspecialchars($recurso['codigo_interno'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-nombre="<?= htmlspecialchars($recurso['nombre_recurso'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-descripcion="<?= htmlspecialchars($recurso['descripcion'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-serial="<?= htmlspecialchars($recurso['serial'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-marca="<?= htmlspecialchars($recurso['marca'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-modelo="<?= htmlspecialchars($recurso['modelo'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-estado="<?= htmlspecialchars($recurso['estado'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-disponibilidad="<?= htmlspecialchars($recurso['disponibilidad'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            data-fecha="<?= htmlspecialchars($recurso['fecha_adquisicion'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                            data-codigo="<?= h($recurso['codigo_interno']) ?>"
+                                            data-nombre="<?= h($recurso['nombre_recurso']) ?>"
+                                            data-descripcion="<?= h($recurso['descripcion']) ?>"
+                                            data-serial="<?= h($recurso['serial']) ?>"
+                                            data-marca="<?= h($recurso['marca']) ?>"
+                                            data-modelo="<?= h($recurso['modelo']) ?>"
+                                            data-estado="<?= h($recurso['estado']) ?>"
+                                            data-disponibilidad="<?= h($recurso['disponibilidad']) ?>"
+                                            data-stock-total="<?= (int) $recurso['stock_total'] ?>"
+                                            data-stock-disponible="<?= (int) $recurso['stock_disponible'] ?>"
+                                            data-fecha="<?= h($recurso['fecha_adquisicion']) ?>"
                                         >
                                             <i class="bi bi-pencil-square"></i>
                                         </button>
+
+
+                                        <!-- ELIMINAR -->
 
                                         <form
                                             action="../controllers/RecursoController.php"
@@ -615,8 +717,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                     <?php else: ?>
 
                         <tr>
-
-                            <td colspan="7">
+                            <td colspan="13">
 
                                 <div class="tabla-recursos-vacia">
 
@@ -631,7 +732,6 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 </div>
 
                             </td>
-
                         </tr>
 
                     <?php endif; ?>
@@ -648,6 +748,9 @@ require_once __DIR__ . '/../includes/navbar.php';
 
 </main>
 
+
+<!-- MODAL DE REGISTRO Y EDICIÓN -->
+
 <div
     class="modal fade"
     id="modalRecurso"
@@ -659,6 +762,9 @@ require_once __DIR__ . '/../includes/navbar.php';
     <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
 
         <div class="modal-content modal-recurso">
+
+
+            <!-- ENCABEZADO DEL MODAL -->
 
             <div class="modal-header">
 
@@ -684,11 +790,15 @@ require_once __DIR__ . '/../includes/navbar.php';
 
             </div>
 
+
+            <!-- FORMULARIO -->
+
             <form
                 id="formRecurso"
                 action="../controllers/RecursoController.php"
                 method="POST"
             >
+                <?= rs_csrf_field() ?>
 
                 <input
                     type="hidden"
@@ -703,12 +813,24 @@ require_once __DIR__ . '/../includes/navbar.php';
                     id="id_recurso"
                 >
 
+                <input
+                    type="hidden"
+                    name="stock_disponible"
+                    id="stock_disponible"
+                    value="0"
+                >
+
+
                 <div class="modal-body">
+
+
+                    <!-- INFORMACIÓN GENERAL -->
 
                     <div class="seccion-formulario">
                         <i class="bi bi-card-list"></i>
                         Información general
                     </div>
+
 
                     <div class="row g-3">
 
@@ -724,11 +846,11 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="codigo_interno"
                                 name="codigo_interno"
                                 maxlength="50"
-                                placeholder="Ej. REC-001"
                                 required
                             >
 
                         </div>
+
 
                         <div class="col-md-8">
 
@@ -742,11 +864,11 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="nombre_recurso"
                                 name="nombre_recurso"
                                 maxlength="100"
-                                placeholder="Nombre del recurso"
                                 required
                             >
 
                         </div>
+
 
                         <div class="col-md-6">
 
@@ -768,11 +890,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 <?php foreach ($categorias as $categoria): ?>
 
                                     <option value="<?= (int) $categoria['id_categoria'] ?>">
-                                        <?= htmlspecialchars(
-                                            $categoria['nombre_categoria'] ?? '',
-                                            ENT_QUOTES,
-                                            'UTF-8'
-                                        ) ?>
+                                        <?= h($categoria['nombre_categoria']) ?>
                                     </option>
 
                                 <?php endforeach; ?>
@@ -780,6 +898,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             </select>
 
                         </div>
+
 
                         <div class="col-md-6">
 
@@ -798,10 +917,14 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                     </div>
 
+
+                    <!-- IDENTIFICACIÓN -->
+
                     <div class="seccion-formulario mt-4">
                         <i class="bi bi-upc-scan"></i>
                         Identificación del recurso
                     </div>
+
 
                     <div class="row g-3">
 
@@ -817,10 +940,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="serial"
                                 name="serial"
                                 maxlength="100"
-                                placeholder="Número de serial"
                             >
 
                         </div>
+
 
                         <div class="col-md-4">
 
@@ -834,10 +957,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="marca"
                                 name="marca"
                                 maxlength="50"
-                                placeholder="Marca"
                             >
 
                         </div>
+
 
                         <div class="col-md-4">
 
@@ -851,10 +974,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="modelo"
                                 name="modelo"
                                 maxlength="50"
-                                placeholder="Modelo"
                             >
 
                         </div>
+
 
                         <div class="col-12">
 
@@ -868,17 +991,74 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 name="descripcion"
                                 rows="3"
                                 maxlength="150"
-                                placeholder="Describe las características del recurso..."
                             ></textarea>
 
                         </div>
 
                     </div>
 
+
+                    <!-- INVENTARIO -->
+
+                    <div class="seccion-formulario mt-4">
+                        <i class="bi bi-boxes"></i>
+                        Control de inventario
+                    </div>
+
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <label for="stock_total" class="form-label">
+                                Stock total *
+                            </label>
+
+                            <input
+                                type="number"
+                                class="form-control"
+                                id="stock_total"
+                                name="stock_total"
+                                min="1"
+                                step="1"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label for="stock_disponible_visual" class="form-label">
+                                Stock disponible
+                            </label>
+
+                            <input
+                                type="number"
+                                class="form-control"
+                                id="stock_disponible_visual"
+                                min="0"
+                                step="1"
+                                value="0"
+                                readonly
+                            >
+
+                            <small class="text-muted" id="ayudaStock">
+                                Al registrar, las unidades disponibles comienzan siendo iguales al stock total.
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ESTADO Y DISPONIBILIDAD -->
+
                     <div class="seccion-formulario mt-4">
                         <i class="bi bi-clipboard-check"></i>
                         Estado y disponibilidad
                     </div>
+
 
                     <div class="row g-3">
 
@@ -906,6 +1086,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                             </select>
 
                         </div>
+
 
                         <div class="col-md-6">
 
@@ -935,11 +1116,19 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                     </div>
 
+
                     <p class="texto-obligatorio mt-3 mb-0">
                         * Los campos marcados son obligatorios.
                     </p>
 
+                    <p class="text-muted mt-2 mb-0">
+                        El stock disponible debe mantenerse sincronizado con los préstamos y las devoluciones.
+                    </p>
+
                 </div>
+
+
+                <!-- BOTONES -->
 
                 <div class="modal-footer">
 
@@ -970,8 +1159,10 @@ require_once __DIR__ . '/../includes/navbar.php';
 
 </div>
 
-<script>
 
+<!-- JAVASCRIPT -->
+
+<script>
 document.addEventListener('DOMContentLoaded', function () {
 
     const formulario = document.getElementById('formRecurso');
@@ -982,21 +1173,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const titulo = document.getElementById('tituloModalRecurso');
     const subtitulo = document.getElementById('subtituloModalRecurso');
+
     const botonGuardar = document.getElementById('btnGuardarRecurso');
 
-    const campos = {
-        codigo_interno: 'codigo',
-        nombre_recurso: 'nombre',
-        id_categoria: 'categoria',
-        fecha_adquisicion: 'fecha',
-        serial: 'serial',
-        marca: 'marca',
-        modelo: 'modelo',
-        descripcion: 'descripcion',
-        estado: 'estado',
-        disponibilidad: 'disponibilidad'
-    };
+    const stockTotal = document.getElementById('stock_total');
+    const stockDisponible = document.getElementById('stock_disponible_visual');
+    const stockDisponibleReal = document.getElementById('stock_disponible');
 
+    const ayudaStock = document.getElementById('ayudaStock');
+
+    let enviando = false;
+
+
+    /**
+     * Preparar el formulario para registrar.
+     */
     function prepararRegistro() {
 
         formulario.reset();
@@ -1004,52 +1195,193 @@ document.addEventListener('DOMContentLoaded', function () {
         accion.value = 'guardar';
         idRecurso.value = '';
 
-        titulo.innerHTML = '<i class="bi bi-plus-circle me-2"></i> Registrar recurso';
+        enviando = false;
+
+        botonGuardar.disabled = false;
+
+        stockDisponible.value = 0;
+        stockDisponibleReal.value = '0';
+
+        stockDisponible.dataset.original = '0';
+
+        ayudaStock.textContent =
+            'Al registrar, las unidades disponibles comienzan siendo iguales al stock total.';
+
+        titulo.innerHTML =
+            '<i class="bi bi-plus-circle me-2"></i> Registrar recurso';
 
         subtitulo.textContent =
             'Ingresa la información del nuevo recurso institucional.';
 
         botonGuardar.innerHTML =
             '<i class="bi bi-check-circle me-2"></i> Registrar recurso';
-
     }
 
-    document.getElementById('btnNuevoRecurso').addEventListener('click', prepararRegistro);
 
-    document.querySelectorAll('.btnEditarRecurso').forEach(function (boton) {
+    /**
+     * Preparar el formulario para editar.
+     */
+    function prepararEdicion(boton) {
 
-        boton.addEventListener('click', function () {
+        formulario.reset();
 
-            formulario.reset();
+        accion.value = 'editar';
 
-            accion.value = 'editar';
-            idRecurso.value = this.dataset.id;
+        idRecurso.value = boton.dataset.id || '';
 
-            Object.entries(campos).forEach(function ([campo, atributo]) {
+        document.getElementById('codigo_interno').value =
+            boton.dataset.codigo || '';
 
-                document.getElementById(campo).value =
-                    boton.dataset[atributo] || '';
+        document.getElementById('nombre_recurso').value =
+            boton.dataset.nombre || '';
 
-            });
+        document.getElementById('id_categoria').value =
+            boton.dataset.categoria || '';
 
-            titulo.innerHTML =
-                '<i class="bi bi-pencil-square me-2"></i> Editar recurso';
+        document.getElementById('fecha_adquisicion').value =
+            boton.dataset.fecha || '';
 
-            subtitulo.textContent =
-                'Actualiza la información del recurso seleccionado.';
+        document.getElementById('serial').value =
+            boton.dataset.serial || '';
 
-            botonGuardar.innerHTML =
-                '<i class="bi bi-check-circle me-2"></i> Guardar cambios';
+        document.getElementById('marca').value =
+            boton.dataset.marca || '';
 
-        });
+        document.getElementById('modelo').value =
+            boton.dataset.modelo || '';
+
+        document.getElementById('descripcion').value =
+            boton.dataset.descripcion || '';
+
+        document.getElementById('estado').value =
+            boton.dataset.estado || '';
+
+        document.getElementById('disponibilidad').value =
+            boton.dataset.disponibilidad || '';
+
+        stockTotal.value =
+            boton.dataset.stockTotal || '1';
+
+        stockDisponible.value =
+            boton.dataset.stockDisponible || '0';
+        stockDisponibleReal.value =
+            boton.dataset.stockDisponible || '0';
+
+        stockDisponible.dataset.original =
+            boton.dataset.stockDisponible || '0';
+
+        ayudaStock.textContent =
+            'El stock disponible se conserva para no alterar las unidades controladas por los préstamos.';
+
+        enviando = false;
+
+        botonGuardar.disabled = false;
+
+        titulo.innerHTML =
+            '<i class="bi bi-pencil-square me-2"></i> Editar recurso';
+
+        subtitulo.textContent =
+            'Actualiza la información del recurso seleccionado.';
+
+        botonGuardar.innerHTML =
+            '<i class="bi bi-check-circle me-2"></i> Guardar cambios';
+    }
+
+
+    /**
+     * Al cambiar la cantidad total durante un registro,
+     * actualizar visualmente la cantidad disponible.
+     *
+     * En edición no se modifica automáticamente porque
+     * puede haber unidades prestadas.
+     */
+    stockTotal.addEventListener('input', function () {
+
+        if (accion.value === 'guardar') {
+
+            const cantidad = Math.max(
+                0,
+                parseInt(this.value, 10) || 0
+            );
+
+            stockDisponible.value = cantidad;
+            stockDisponibleReal.value = String(cantidad);
+        }
 
     });
 
-    modal.addEventListener('hidden.bs.modal', prepararRegistro);
+
+    /**
+     * Botón nuevo recurso.
+     */
+    document
+        .getElementById('btnNuevoRecurso')
+        .addEventListener('click', prepararRegistro);
+
+
+    /**
+     * Botones editar.
+     */
+    document
+        .querySelectorAll('.btnEditarRecurso')
+        .forEach(function (boton) {
+
+            boton.addEventListener('click', function () {
+                prepararEdicion(this);
+            });
+
+        });
+
+
+    /**
+     * Evitar doble envío del formulario.
+     */
+    formulario.addEventListener('submit', function (evento) {
+
+        if (enviando) {
+            evento.preventDefault();
+            return;
+        }
+
+        if (!formulario.checkValidity()) {
+            return;
+        }
+
+        const total = parseInt(stockTotal.value, 10);
+
+        if (!Number.isInteger(total) || total < 1) {
+
+            evento.preventDefault();
+
+            alert('El stock total debe ser como mínimo 1.');
+
+            stockTotal.focus();
+
+            return;
+        }
+
+        enviando = true;
+
+        botonGuardar.disabled = true;
+
+        botonGuardar.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
+
+    });
+
+
+    /**
+     * Limpiar el modal al cerrarlo.
+     */
+    modal.addEventListener('hidden.bs.modal', function () {
+
+        prepararRegistro();
+
+    });
 
 });
-
 </script>
+
 
 <?php
 
