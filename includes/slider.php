@@ -65,6 +65,9 @@ $activePage = $activePage ?? '';
             <a class="nav-link <?php echo rs_is_active('reportes', $activePage); ?>" href="reportes.php">
                 <i class="bi bi-graph-up"></i><span class="sidebar-text">Reportes</span>
             </a>
+            <a class="nav-link <?php echo rs_is_active('reportes_danos', $activePage); ?>" href="reportes_danos.php">
+                <i class="bi bi-exclamation-triangle"></i><span class="sidebar-text">Reportes de daños</span>
+            </a>
             <a class="nav-link <?php echo rs_is_active('chatbot', $activePage); ?>" href="chatbot.php">
                 <i class="bi bi-chat-dots"></i><span class="sidebar-text">Chatbot y Asistencia</span>
             </a>

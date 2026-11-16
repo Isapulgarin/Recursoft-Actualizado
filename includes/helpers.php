@@ -251,12 +251,26 @@ function rs_roles(): array
     return rs_all('SELECT * FROM rol ORDER BY nombre_rol');
 }
 
-function rs_registrar_historial($idPrestamo, string $accion, string $detalle = ''): void
+function rs_registrar_historial(
+    $idPrestamo,
+    string $accion,
+    string $detalle = '',
+    ?int $idCuentaAccion = null
+): void
 {
-    rs_exec(
-        'INSERT INTO historial_prestamo (id_prestamo, fecha_accion, accion, detalle) VALUES (?, CURDATE(), ?, ?)',
-        [(int) $idPrestamo, mb_substr($accion, 0, 50), mb_substr($detalle, 0, 150)]
+    $registrado = rs_exec(
+        'INSERT INTO historial_prestamo (id_prestamo, id_cuenta_accion, fecha_accion, fecha_hora, accion, detalle) VALUES (?, ?, CURDATE(), CURRENT_TIMESTAMP, ?, ?)',
+        [
+            (int) $idPrestamo,
+            $idCuentaAccion,
+            mb_substr($accion, 0, 50),
+            mb_substr($detalle, 0, 500)
+        ]
     );
+
+    if (!$registrado) {
+        throw new RuntimeException('No fue posible registrar el evento en el historial del préstamo.');
+    }
 }
 
 function rs_actualizar_disponibilidad($idRecurso, string $disponibilidad): void

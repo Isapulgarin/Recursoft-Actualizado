@@ -1,0 +1,16 @@
+/* Ajustes específicos del panel de empleado */
+
+.employee-hero h2 {
+    margin: 0;
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
+    font-weight: 800;
+}
+
+.employee-hero p {
+    margin: 0.4rem 0 0;
+    color: var(--color-muted);
+}
+
+body.role-employee .quick-access {
+    min-height: 142px;
+}

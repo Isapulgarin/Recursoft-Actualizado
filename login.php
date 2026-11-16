@@ -157,32 +157,4 @@ require_once __DIR__ . '/includes/head.php';
     </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-
-    const boton = document.getElementById('togglePassword');
-    const campo = document.getElementById('password');
-
-    if (boton && campo) {
-
-        boton.addEventListener('click', function () {
-
-            const mostrar = campo.type === 'password';
-
-            campo.type = mostrar ? 'text' : 'password';
-
-            boton.innerHTML = mostrar
-                ? '<i class="bi bi-eye-slash"></i>'
-                : '<i class="bi bi-eye"></i>';
-
-            boton.setAttribute(
-                'aria-label',
-                mostrar ? 'Ocultar contraseña' : 'Mostrar contraseña'
-            );
-        });
-    }
-
-});
-</script>
-
 <?php require_once __DIR__ . '/includes/scripts.php'; ?>

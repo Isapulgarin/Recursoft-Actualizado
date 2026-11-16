@@ -1,0 +1,21 @@
+HTTP/1.1 302 Found
+Date: Fri, 13 Nov 2026 03:00:41 GMT
+Server: Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12
+X-Powered-By: PHP/8.2.12
+Expires: 0
+Cache-Control: no-store, private
+Pragma: no-cache
+Location: /RECURSOFT/dashboardAD/index.php
+Content-Length: 4
+Content-Type: text/html; charset=UTF-8
+
+HTTP/1.1 200 OK
+Date: Fri, 13 Nov 2026 03:00:41 GMT
+Server: Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12
+X-Powered-By: PHP/8.2.12
+Expires: 0
+Cache-Control: no-store, private
+Pragma: no-cache
+Transfer-Encoding: chunked
+Content-Type: text/html; charset=UTF-8
+

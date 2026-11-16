@@ -1,0 +1,672 @@
+/* Identidad visual compartida de RecurSoft */
+
+body.role-admin,
+body.role-employee {
+    background: var(--color-background);
+    color: var(--color-text);
+}
+
+.navbar-rs {
+    border-top: 3px solid var(--color-accent);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 2px 12px rgba(23, 55, 94, 0.06);
+    padding-inline: clamp(0.75rem, 2vw, 1.5rem);
+}
+
+.navbar-rs .brand-name {
+    color: var(--color-primary);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.btn-sidebar-toggle,
+.btn-icon-round {
+    transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.btn-sidebar-toggle:hover,
+.btn-icon-round:hover {
+    border-color: var(--color-primary);
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.sidebar-rs {
+    background: var(--color-primary) !important;
+}
+
+.sidebar-brand {
+    padding-block: 1.25rem;
+}
+
+.sidebar-rs .nav-link {
+    min-height: 42px;
+}
+
+.sidebar-rs .nav-link.active {
+    background: rgba(255, 255, 255, 0.13);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+    color: var(--color-surface);
+    font-weight: 700;
+}
+
+.sidebar-rs .nav-link.logout:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.main-content {
+    padding-top: clamp(1.1rem, 2.4vw, 1.75rem);
+}
+
+.page-heading h1 {
+    color: var(--color-primary);
+    letter-spacing: -0.025em;
+}
+
+.page-heading h1::after {
+    display: block;
+    width: 34px;
+    height: 3px;
+    margin-top: 0.42rem;
+    border-radius: 99px;
+    background: var(--color-accent);
+    content: "";
+}
+
+.page-heading p {
+    line-height: 1.55;
+}
+
+.admin-hero,
+.employee-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    padding: clamp(1.1rem, 2.5vw, 1.6rem);
+}
+
+.admin-hero h2,
+.employee-hero h2 {
+    color: var(--color-primary);
+    letter-spacing: -0.02em;
+}
+
+.admin-hero p,
+.employee-hero p {
+    max-width: 760px;
+    line-height: 1.6;
+}
+
+.card-rs,
+.stat-card,
+.quick-access {
+    border-color: var(--color-border);
+    box-shadow: var(--shadow-sm);
+}
+
+.card-rs {
+    overflow: hidden;
+}
+
+.card-rs .card-header {
+    padding-inline: 1.1rem;
+    color: var(--color-primary);
+}
+
+.stat-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::after {
+    position: absolute;
+    inset: auto 0 0;
+    height: 3px;
+    background: var(--color-accent);
+    content: "";
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--transition);
+}
+
+.stat-card:hover::after {
+    transform: scaleX(1);
+}
+
+.stat-icon.bg-1,
+.stat-icon.bg-2,
+.stat-icon.bg-4 {
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.stat-icon.bg-3 {
+    background: var(--color-yellow-soft);
+    color: #604900;
+}
+
+.stat-label {
+    color: var(--color-muted);
+}
+
+.stat-value {
+    color: var(--color-primary);
+    letter-spacing: -0.03em;
+}
+
+.quick-access {
+    position: relative;
+    min-height: 142px;
+    padding: 1.15rem;
+    transition: border-color var(--transition), background-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.quick-access:hover {
+    transform: translateY(-2px);
+    border-color: #b7c8dc;
+    background: var(--color-surface);
+    box-shadow: var(--shadow);
+}
+
+.quick-access i {
+    color: var(--color-primary);
+}
+
+.quick-access:hover i {
+    color: var(--color-secondary);
+}
+
+.toolbar-card {
+    background: var(--color-surface);
+}
+
+.table {
+    --bs-table-color: var(--color-text);
+    --bs-table-bg: var(--color-surface);
+    --bs-table-striped-bg: #f8fafd;
+    --bs-table-hover-bg: #f3f6fa;
+    --bs-table-border-color: var(--color-border);
+}
+
+.table thead th {
+    background: var(--color-primary);
+    color: var(--color-surface);
+    letter-spacing: 0.01em;
+}
+
+.table td {
+    color: var(--color-text);
+}
+
+.table > :not(caption) > * > * {
+    padding: 0.8rem 0.85rem;
+}
+
+.table-responsive {
+    scrollbar-color: #b8c5d5 transparent;
+    scrollbar-width: thin;
+}
+
+.badge-rs,
+.estado-recurso,
+.disponibilidad-recurso,
+.estado-prestamo,
+.estado-usuario,
+.estado-empleado {
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.badge-disponible,
+.badge-mantenimiento,
+.disponibilidad-recurso.disponible,
+.disponibilidad-recurso.prestado,
+.estado-recurso.bueno,
+.estado-prestamo.activo,
+.estado-prestamo.devuelto,
+.estado-usuario.activo,
+.estado-empleado.activo {
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.badge-prestado,
+.badge-pendiente,
+.estado-recurso.regular,
+.disponibilidad-recurso.mantenimiento,
+.estado-prestamo.pendiente {
+    background: var(--color-yellow-soft);
+    color: #604900;
+}
+
+.badge-danger,
+.badge.bg-danger,
+.badge-danger-rs,
+.estado-recurso.dañado,
+.estado-prestamo.vencido {
+    background: var(--color-red-soft);
+    color: #9e2929;
+}
+
+.badge-inactivo,
+.estado-prestamo.cancelado,
+.estado-usuario.inactivo,
+.estado-empleado.inactivo {
+    background: #edf0f4;
+    color: #596575;
+}
+
+.btn,
+.btn-rs,
+.btn-prestamo-principal,
+.btn-registrar,
+.btn-buscar,
+.btn-aplicar-filtros {
+    border-radius: 9px;
+    font-weight: 650;
+    transition: background-color var(--transition), border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.btn-rs,
+.btn-prestamo-principal,
+.btn-registrar,
+.btn-buscar,
+.btn-aplicar-filtros {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    box-shadow: none;
+    color: var(--color-surface);
+}
+
+.btn-rs:hover,
+.btn-prestamo-principal:hover,
+.btn-registrar:hover,
+.btn-buscar:hover,
+.btn-aplicar-filtros:hover {
+    background: var(--color-secondary);
+    border-color: var(--color-secondary);
+    box-shadow: var(--shadow-sm);
+    color: var(--color-surface);
+    transform: translateY(-1px);
+}
+
+.btn-warning {
+    --bs-btn-color: var(--color-text);
+    --bs-btn-bg: var(--color-accent);
+    --bs-btn-border-color: var(--color-accent);
+    --bs-btn-hover-color: var(--color-text);
+    --bs-btn-hover-bg: #e6bb35;
+    --bs-btn-hover-border-color: #e6bb35;
+}
+
+.btn-danger {
+    --bs-btn-bg: var(--color-danger);
+    --bs-btn-border-color: var(--color-danger);
+    --bs-btn-hover-bg: #ae3030;
+    --bs-btn-hover-border-color: #ae3030;
+}
+
+.form-control,
+.form-select {
+    border-color: var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+}
+
+.form-control::placeholder {
+    color: #8792a1;
+    opacity: 1;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--color-secondary);
+    box-shadow: var(--focus-ring);
+}
+
+.input-group-text {
+    border-color: var(--color-border);
+    background: #f7f9fc;
+    color: var(--color-secondary);
+}
+
+.modal-content {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 18px 48px rgba(23, 55, 94, 0.14);
+}
+
+.modal-header {
+    background: var(--color-primary);
+    color: var(--color-surface);
+}
+
+.modal-footer {
+    border-top-color: var(--color-border);
+    background: #f9fafc;
+}
+
+.alert {
+    border-radius: 11px;
+}
+
+.alert-info {
+    color: var(--color-primary);
+    background: var(--color-blue-soft);
+    border-color: #d7e3f0;
+}
+
+.alert-warning {
+    color: #604900;
+    background: var(--color-yellow-soft);
+    border-color: #efdfa4;
+}
+
+.alert-danger {
+    color: #9e2929;
+    background: var(--color-red-soft);
+    border-color: #f0caca;
+}
+
+.pagination {
+    --bs-pagination-color: var(--color-primary);
+    --bs-pagination-border-color: var(--color-border);
+    --bs-pagination-hover-color: var(--color-primary);
+    --bs-pagination-hover-bg: var(--color-blue-soft);
+    --bs-pagination-hover-border-color: var(--color-border);
+    --bs-pagination-active-bg: var(--color-primary);
+    --bs-pagination-active-border-color: var(--color-primary);
+    --bs-pagination-focus-box-shadow: var(--focus-ring);
+}
+
+.pagination .page-link {
+    border-radius: 7px;
+    margin-inline: 2px;
+}
+
+.dropdown-menu {
+    border-color: var(--color-border);
+    box-shadow: var(--shadow);
+}
+
+.app-footer {
+    border-top-color: var(--color-border);
+}
+
+.login-brand-panel {
+    position: relative;
+    background: var(--color-primary);
+    border-top-color: var(--color-accent);
+}
+
+.login-brand-panel::after {
+    position: absolute;
+    right: 2.5rem;
+    bottom: 2.5rem;
+    width: min(34vw, 240px);
+    height: 3px;
+    border-radius: 99px;
+    background: var(--color-accent);
+    content: "";
+    opacity: 0.85;
+}
+
+.login-brand-panel img {
+    border: 3px solid rgba(255, 255, 255, 0.85);
+}
+
+.login-card {
+    border: 1px solid var(--color-border);
+    box-shadow: 0 18px 48px rgba(23, 55, 94, 0.12);
+}
+
+.login-card h2 {
+    color: var(--color-primary) !important;
+}
+
+.btn-eye {
+    color: var(--color-secondary);
+}
+
+.role-admin .empleados-page,
+.role-admin .usuarios-page,
+.role-admin .recursos-page,
+.role-admin .prestamos-page {
+    color: var(--color-text);
+}
+
+.role-admin .empleados-page,
+.role-admin .usuarios-page,
+.role-admin .prestamos-page {
+    padding: 0;
+}
+
+.role-admin .main-content.recursos-page {
+    padding: clamp(1.1rem, 2.4vw, 1.75rem);
+}
+
+.role-admin .empleados-page .page-heading h2,
+.role-admin .usuarios-page .page-heading h2,
+.role-admin .recursos-page .page-heading h1,
+.role-admin .prestamos-page .page-heading h1 {
+    color: var(--color-primary);
+}
+
+.role-admin .empleado-card,
+.role-admin .filtros-empleados,
+.role-admin .tabla-empleados-contenedor,
+.role-admin .usuario-card,
+.role-admin .filtros-usuarios,
+.role-admin .tabla-usuarios-contenedor,
+.role-admin .resumen-card,
+.role-admin .filtros-recursos,
+.role-admin .tabla-recursos,
+.role-admin .prestamo-card,
+.role-admin .filtros-prestamos,
+.role-admin .tabla-prestamos-contenedor {
+    border-color: var(--color-border);
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.role-admin .empleado-card-icono,
+.role-admin .usuario-card-icono,
+.role-admin .resumen-icono,
+.role-admin .prestamo-icono {
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.role-admin .empleado-card h3,
+.role-admin .usuario-card h3,
+.role-admin .resumen-card strong,
+.role-admin .prestamo-card h3,
+.role-admin .filtros-titulo h5,
+.role-admin .filtros-recursos-header h5,
+.role-admin .tabla-recursos-header h5,
+.role-admin .tabla-prestamos-header h5 {
+    color: var(--color-primary);
+}
+
+.role-admin .tabla-empleados thead th,
+.role-admin .tabla-usuarios thead th,
+.role-admin .tabla-recursos thead th,
+.role-admin .tabla-prestamos thead th {
+    background: var(--color-primary);
+    color: var(--color-surface);
+    border-color: var(--color-primary);
+}
+
+.role-admin .tabla-empleados tbody td,
+.role-admin .tabla-usuarios tbody td,
+.role-admin .tabla-recursos tbody td,
+.role-admin .tabla-prestamos tbody td {
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+.role-admin .tabla-empleados tbody tr:hover,
+.role-admin .tabla-usuarios tbody tr:hover,
+.role-admin .tabla-recursos tbody tr:hover,
+.role-admin .tabla-prestamos tbody tr:hover {
+    background: #f3f6fa;
+}
+
+.role-admin .estado-empleado.activo,
+.role-admin .estado-usuario.activo {
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.role-admin .estado-empleado.activo > span,
+.role-admin .estado-usuario.activo span {
+    background: var(--color-secondary);
+}
+
+.role-admin .estado-empleado.inactivo,
+.role-admin .estado-usuario.inactivo {
+    background: #edf0f4;
+    color: #596575;
+}
+
+.role-admin .estado-empleado.inactivo > span,
+.role-admin .estado-usuario.inactivo span {
+    background: #8995a5;
+}
+
+.role-admin .rol-usuario,
+.role-admin .codigo-recurso,
+.role-admin .contador-usuarios,
+.role-admin .contador-recursos,
+.role-admin .contador-prestamos,
+.role-admin .id-empleado,
+.role-admin .cargo-empleado {
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.role-admin .estado-recurso.bueno,
+.role-admin .disponibilidad-recurso.disponible,
+.role-admin .disponibilidad-recurso.prestado {
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.role-admin .estado-recurso.regular,
+.role-admin .disponibilidad-recurso.mantenimiento,
+.role-admin .estado-prestamo.pendiente {
+    background: var(--color-yellow-soft);
+    color: #604900;
+}
+
+.role-admin .estado-recurso.dañado,
+.role-admin .estado-prestamo.vencido {
+    background: var(--color-red-soft);
+    color: #9e2929;
+}
+
+.role-admin .estado-prestamo.activo,
+.role-admin .estado-prestamo.devuelto {
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+.role-admin .estado-prestamo.cancelado {
+    background: #edf0f4;
+    color: #596575;
+}
+
+.role-admin .btn-recurso-editar,
+.role-admin .btn-accion.editar {
+    background: var(--color-blue-soft);
+    border-color: #d7e3f0;
+    color: var(--color-primary);
+}
+
+.role-admin .btn-recurso-editar:hover,
+.role-admin .btn-accion.editar:hover {
+    background: var(--color-primary);
+    color: var(--color-surface);
+}
+
+.role-admin .btn-recurso-eliminar,
+.role-admin .btn-accion.eliminar,
+.role-admin .btn-accion.desactivar {
+    background: var(--color-red-soft);
+    border-color: #f0caca;
+    color: var(--color-danger);
+}
+
+.role-admin .btn-recurso-eliminar:hover,
+.role-admin .btn-accion.eliminar:hover,
+.role-admin .btn-accion.desactivar:hover {
+    background: var(--color-danger);
+    color: var(--color-surface);
+}
+
+.role-admin .modal-recurso .modal-header,
+.role-admin .modal-usuario .modal-header,
+.role-admin .modal-empleado .modal-header {
+    background: var(--color-primary);
+    color: var(--color-surface);
+}
+
+.role-admin .modal-recurso .modal-title,
+.role-admin .modal-usuario .modal-title,
+.role-admin .modal-empleado .modal-title {
+    color: var(--color-surface);
+}
+
+.role-admin .modal-recurso .modal-footer,
+.role-admin .modal-empleado .modal-footer {
+    background: #f9fafc;
+    border-color: var(--color-border);
+}
+
+.role-admin .modal-recurso .form-control,
+.role-admin .modal-recurso .form-select,
+.role-admin .modal-usuario .form-control,
+.role-admin .modal-usuario .form-select,
+.role-admin .modal-empleado .form-control,
+.role-admin .modal-empleado .form-select {
+    border-color: var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+}
+
+.role-admin .aviso-prestamo {
+    border-color: #d7e3f0;
+    background: var(--color-blue-soft);
+    color: var(--color-primary);
+}
+
+@media (max-width: 767.98px) {
+    .main-content {
+        padding-inline: 0.85rem;
+    }
+
+    .navbar-rs {
+        min-height: 62px;
+    }
+
+    .quick-access {
+        min-height: 125px;
+    }
+
+    .role-admin .tabla-usuarios-contenedor {
+        padding: 1rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

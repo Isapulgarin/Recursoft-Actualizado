@@ -1,0 +1,262 @@
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RecurSoft - Sistema de Gestión de Recursos Institucionales">
+    <meta name="theme-color" content="#17375E">
+    <title>Dashboard | RecurSoft</title>
+
+    <link rel="icon" href="/RECURSOFT/IMG/logo.png" type="image/png">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/RECURSOFT/CSS/EstilosRecursoft.css">
+    <link rel="stylesheet" href="/RECURSOFT/CSS/componentes.css">
+            <link rel="stylesheet" href="/RECURSOFT/CSS/Administrador.css">
+        <link rel="stylesheet" href="/RECURSOFT/CSS/tema-institucional.css">
+</head>
+<body class="role-admin">
+<div class="app-shell d-flex">
+<aside class="offcanvas-lg offcanvas-start sidebar-rs" tabindex="-1" id="sidebarRecursoft" aria-labelledby="sidebarLabelAdmin">
+    <div class="offcanvas-header d-lg-none">
+        <h5 class="offcanvas-title" id="sidebarLabelAdmin">RecurSoft</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarRecursoft" aria-label="Cerrar menú"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="sidebar-brand">
+            <img src="/RECURSOFT/IMG/logo.png" alt="Logotipo RecurSoft">
+            <div class="sidebar-text">
+                <div class="sidebar-brand-title">RecurSoft</div>
+                <div class="sidebar-brand-sub">Panel administrador</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menú administrador">
+            <span class="sidebar-label">Principal</span>
+            <a class="nav-link active" href="index.php">
+                <i class="bi bi-speedometer2"></i><span class="sidebar-text">Dashboard</span>
+            </a>
+            <a class="nav-link " href="usuarios.php">
+                <i class="bi bi-people"></i><span class="sidebar-text">Usuarios</span>
+            </a>
+            <a class="nav-link " href="recursos.php">
+                <i class="bi bi-box-seam"></i><span class="sidebar-text">Recursos</span>
+            </a>
+
+            <span class="sidebar-label">Operaciones</span>
+            <a class="nav-link " href="prestamos.php">
+                <i class="bi bi-clipboard-check"></i><span class="sidebar-text">Préstamos</span>
+            </a>
+            <a class="nav-link " href="devoluciones.php">
+                <i class="bi bi-arrow-return-left"></i><span class="sidebar-text">Devoluciones</span>
+            </a>
+            <a class="nav-link " href="mantenimiento.php">
+                <i class="bi bi-tools"></i><span class="sidebar-text">Mantenimientos</span>
+            </a>
+
+            <span class="sidebar-label">Catálogos</span>
+            <a class="nav-link " href="empleados.php">
+                <i class="bi bi-person-badge"></i><span class="sidebar-text">Empleados</span>
+            </a>
+            <a class="nav-link " href="administradores.php">
+                <i class="bi bi-person-badge"></i><span class="sidebar-text">Administradores</span>
+            </a>
+            <a class="nav-link " href="categorias.php">
+                <i class="bi bi-tags"></i><span class="sidebar-text">Categorías</span>
+            </a>
+            <a class="nav-link " href="proveedores.php">
+                <i class="bi bi-truck"></i><span class="sidebar-text">Proveedores</span>
+            </a>
+            <a class="nav-link " href="compras.php">
+                <i class="bi bi-bag-check"></i><span class="sidebar-text">Compras y Adquisiciones</span>
+            </a>
+
+            <span class="sidebar-label">Información</span>
+            <a class="nav-link " href="historial.php">
+                <i class="bi bi-clock-history"></i><span class="sidebar-text">Historial de Préstamos</span>
+            </a>
+            <a class="nav-link " href="reportes.php">
+                <i class="bi bi-graph-up"></i><span class="sidebar-text">Reportes</span>
+            </a>
+            <a class="nav-link " href="reportes_danos.php">
+                <i class="bi bi-exclamation-triangle"></i><span class="sidebar-text">Reportes de daños</span>
+            </a>
+            <a class="nav-link " href="chatbot.php">
+                <i class="bi bi-chat-dots"></i><span class="sidebar-text">Chatbot y Asistencia</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <form method="POST" action="/RECURSOFT/controllers/auth.php">
+                <input type="hidden" name="action" value="logout">
+                <input type="hidden" name="csrf_token" value="ebf4a8b422b52a3fd2b3e09bff80d1d87e962338a3cfb1bcc860452d4e1457af">                <button class="nav-link logout" type="submit">
+                <i class="bi bi-box-arrow-left"></i><span class="sidebar-text">Cerrar sesión</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</aside>
+<div class="main-wrapper flex-grow-1">
+<header class="navbar-rs d-flex align-items-center justify-content-between gap-2">
+    <div class="d-flex align-items-center gap-2 min-w-0">
+        <button class="btn-sidebar-toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarRecursoft" aria-controls="sidebarRecursoft" aria-label="Abrir menú">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+        <button class="btn-sidebar-toggle d-none d-lg-inline-flex" type="button" id="btnCollapseSidebar" aria-label="Contraer menú lateral">
+            <i class="bi bi-layout-sidebar-inset"></i>
+        </button>
+        <span class="brand-name">RecurSoft</span>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <div class="dropdown">
+            <button class="btn-icon-round" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificaciones">
+                <i class="bi bi-bell"></i>
+                <span class="notif-dot" aria-hidden="true"></span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: min(320px, 90vw);">
+                <strong class="text-primary">Notificaciones</strong>
+                <p class="small text-secondary mb-0 mt-2">No hay notificaciones disponibles.</p>
+            </div>
+        </div>
+
+        <div class="navbar-user">
+            <div class="navbar-user-meta text-end">
+                <div class="name">Administrador</div>
+                <div class="role">Rol administrativo</div>
+            </div>
+            <img src="/RECURSOFT/IMG/avatar.png" alt="Avatar del usuario">
+        </div>
+    </div>
+</header>
+
+<main class="main-content">
+    <section class="admin-hero section-gap">
+        <h2>Bienvenido al panel de administración</h2>
+        <p>Supervise recursos, préstamos y catálogos institucionales desde un único entorno visual.</p>
+    </section>
+
+    <div class="row g-3 section-gap">
+        <div class="col-12 col-sm-6 col-xxl-3">
+            <article class="stat-card">
+                <div class="stat-icon bg-1"><i class="bi bi-box-seam"></i></div>
+                <div>
+                    <div class="stat-label">Total de recursos</div>
+                    <div class="stat-value">—</div>
+                    <div class="stat-hint">Sin datos cargados</div>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-sm-6 col-xxl-3">
+            <article class="stat-card">
+                <div class="stat-icon bg-2"><i class="bi bi-clipboard-check"></i></div>
+                <div>
+                    <div class="stat-label">Préstamos</div>
+                    <div class="stat-value">—</div>
+                    <div class="stat-hint">Sin datos cargados</div>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-sm-6 col-xxl-3">
+            <article class="stat-card">
+                <div class="stat-icon bg-3"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <div class="stat-label">Recursos disponibles</div>
+                    <div class="stat-value">—</div>
+                    <div class="stat-hint">Sin datos cargados</div>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-sm-6 col-xxl-3">
+            <article class="stat-card">
+                <div class="stat-icon bg-4"><i class="bi bi-people"></i></div>
+                <div>
+                    <div class="stat-label">Usuarios</div>
+                    <div class="stat-value">—</div>
+                    <div class="stat-hint">Sin datos cargados</div>
+                </div>
+            </article>
+        </div>
+    </div>
+
+    <div class="row g-3 section-gap">
+        <div class="col-12 col-xl-8">
+            <div class="card-rs h-100">
+                <div class="card-header py-3">Actividad de préstamos</div>
+                <div class="p-3">
+                    <div class="chart-placeholder">
+                        <i class="bi bi-bar-chart-line"></i>
+                        <strong>Sin datos para graficar</strong>
+                        <span>El contenedor quedará listo para un motor de gráficos.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="card-rs h-100">
+                <div class="card-header py-3">Estado operativo</div>
+                <div class="p-3">
+                    <div class="chart-placeholder">
+                        <i class="bi bi-pie-chart"></i>
+                        <strong>Sin indicadores</strong>
+                        <span>No hay registros disponibles.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-heading d-flex flex-column flex-md-row justify-content-between gap-2 section-gap">
+        <div>
+            <h1>Accesos rápidos</h1>
+            <p>Ingrese a los módulos de gestión sin datos de demostración.</p>
+        </div>
+    </div>
+
+    <div class="row g-3 section-gap">
+        <div class="col-12 col-sm-6 col-xxl-3"><a class="quick-access" href="usuarios.php"><i class="bi bi-people"></i><strong>Usuarios</strong><span>Administrar cuentas</span></a></div>
+        <div class="col-12 col-sm-6 col-xxl-3"><a class="quick-access" href="recursos.php"><i class="bi bi-box-seam"></i><strong>Recursos</strong><span>Inventario institucional</span></a></div>
+        <div class="col-12 col-sm-6 col-xxl-3"><a class="quick-access" href="prestamos.php"><i class="bi bi-clipboard-check"></i><strong>Préstamos</strong><span>Solicitudes y seguimiento</span></a></div>
+        <div class="col-12 col-sm-6 col-xxl-3"><a class="quick-access" href="reportes.php"><i class="bi bi-graph-up"></i><strong>Reportes</strong><span>Consultas y exportación visual</span></a></div>
+    </div>
+
+    <div class="card-rs">
+        <div class="card-header py-3">Actividad reciente</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Módulo</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4" class="empty-cell"><i class="bi bi-inbox d-block fs-3 text-secondary mb-1"></i>No hay registros disponibles</td></tr>                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<footer class="app-footer mt-auto">
+    <div class="d-flex flex-column flex-md-row justify-content-between gap-1">
+        <span>RecurSoft &copy; 2026 · Sistema de Gestión de Recursos Institucionales</span>
+        
+    </div>
+</footer>
+</div><!-- /.main-wrapper -->
+</div><!-- /.app-shell -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/RECURSOFT/JS/interfaz.js"></script>
+<script src="/RECURSOFT/JS/dashboard.js"></script>
+</body>
+</html>

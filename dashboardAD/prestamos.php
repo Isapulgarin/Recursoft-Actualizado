@@ -2,6 +2,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/auth.php';
+
 $usuarioSesion = rs_requiere_admin();
 $conexion = rs_pdo();
 
@@ -15,55 +16,83 @@ function h($valor)
 }
 
 /* =====================================================
-   VALIDAR SESIÓN Y ROL
+   SESIÓN Y RESPONSABLE AUTENTICADO
 ===================================================== */
 
 $idRolSesion = (int)($usuarioSesion['id_rol'] ?? 0);
-$idEmpleadoSesion = $usuarioSesion['id_empleado'] ?? null;
+$idCuentaSesion = (int)($usuarioSesion['id_cuenta'] ?? 0);
 
-$esAdministrador = $idRolSesion === 1;
-$esEmpleado = $idRolSesion === 2;
-
-if (!$esAdministrador || $esEmpleado) {
+if ($idRolSesion !== 1 || $idCuentaSesion <= 0) {
     http_response_code(403);
     exit('No tienes permisos para acceder a esta página.');
 }
 
 /* =====================================================
-   IDENTIFICAR EMPLEADO
+   DATOS DEL RESPONSABLE DE LA SESIÓN
 ===================================================== */
 
-$empleadoSesion = null;
+$stmtResponsableSesion = $conexion->prepare("
+    SELECT
+        ca.id_cuenta,
+        ca.nombre_usuario,
+        ca.correo,
+        ca.id_rol,
 
-if ($idEmpleadoSesion !== null && $idEmpleadoSesion !== '') {
+        CASE
+            WHEN ca.id_rol = 1 THEN 'Administrador'
+            WHEN ca.id_rol = 2 THEN 'Empleado'
+            ELSE 'Usuario'
+        END AS rol_nombre,
 
-    $stmtEmpleadoSesion = $conexion->prepare("
-        SELECT
-            id_empleado,
-            documento,
-            nombre,
-            apellido,
-            cargo,
-            correo,
-            telefono,
-            estado
-        FROM empleado
-        WHERE id_empleado = :id
-          AND estado = 'Activo'
-        LIMIT 1
-    ");
+        CASE
+            WHEN ca.id_rol = 1 THEN
+                COALESCE(
+                    NULLIF(TRIM(CONCAT(a.nombre, ' ', a.apellido)), ''),
+                    ca.nombre_usuario
+                )
+            WHEN ca.id_rol = 2 THEN
+                COALESCE(
+                    NULLIF(TRIM(CONCAT(e.nombre, ' ', e.apellido)), ''),
+                    ca.nombre_usuario
+                )
+            ELSE ca.nombre_usuario
+        END AS nombre_responsable,
 
-    $stmtEmpleadoSesion->execute([
-        ':id' => $idEmpleadoSesion
-    ]);
+        CASE
+            WHEN ca.id_rol = 1 THEN a.telefono
+            WHEN ca.id_rol = 2 THEN e.telefono
+            ELSE NULL
+        END AS telefono_responsable,
 
-    $empleadoSesion = $stmtEmpleadoSesion->fetch(PDO::FETCH_ASSOC);
-}
+        CASE
+            WHEN ca.id_rol = 1 THEN 'Administrador'
+            WHEN ca.id_rol = 2 THEN e.cargo
+            ELSE 'Usuario'
+        END AS cargo_responsable
 
-$puedeRegistrar = $esAdministrador || ($esEmpleado && $empleadoSesion);
+    FROM cuenta_acceso ca
 
-if ($esEmpleado && !$empleadoSesion) {
+    LEFT JOIN administrador a
+        ON a.id_cuenta = ca.id_cuenta
+
+    LEFT JOIN empleado e
+        ON e.id_empleado = ca.id_empleado
+
+    WHERE ca.id_cuenta = :id_cuenta
+      AND ca.estado = 'Activo'
+
+    LIMIT 1
+");
+
+$stmtResponsableSesion->execute([
+    ':id_cuenta' => $idCuentaSesion
+]);
+
+$responsableSesion = $stmtResponsableSesion->fetch(PDO::FETCH_ASSOC);
+
+if (!$responsableSesion) {
     http_response_code(403);
+    exit('No se pudieron verificar los datos de la cuenta autenticada.');
 }
 
 /* =====================================================
@@ -99,6 +128,8 @@ $stmtRecursos = $conexion->prepare("
         id_recurso,
         codigo_interno,
         nombre_recurso,
+        stock_total,
+        stock_disponible,
         estado,
         disponibilidad
     FROM recurso
@@ -141,33 +172,31 @@ if (
 $where = [];
 $params = [];
 
-/*
-   El empleado solamente consulta sus propios préstamos.
-   El administrador consulta todos.
-*/
-
-if ($esEmpleado && $empleadoSesion) {
-    $where[] = 'p.id_empleado = :id_empleado';
-    $params[':id_empleado'] = (int)$empleadoSesion['id_empleado'];
-} elseif ($esEmpleado) {
-    $where[] = '1 = 0';
-}
-
 if ($buscar !== '') {
 
     $where[] = "(
-        CONCAT(u.nombre, ' ', u.apellido) LIKE :buscar
-        OR CONCAT(e.nombre, ' ', e.apellido) LIKE :buscar
-        OR r.nombre_recurso LIKE :buscar
-        OR r.codigo_interno LIKE :buscar
-        OR CAST(p.id_prestamo AS CHAR) LIKE :buscar
-        OR (
-            p.id_empleado IS NULL
-            AND 'administrador' LIKE :buscar
-        )
+        CONCAT(u.nombre, ' ', u.apellido) LIKE :buscar1
+        OR CONCAT(e.nombre, ' ', e.apellido) LIKE :buscar2
+        OR r.nombre_recurso LIKE :buscar3
+        OR r.codigo_interno LIKE :buscar4
+        OR CAST(p.id_prestamo AS CHAR) LIKE :buscar5
+        OR ca.correo LIKE :buscar6
+        OR ca.nombre_usuario LIKE :buscar7
+        OR CONCAT(a.nombre, ' ', a.apellido) LIKE :buscar8
+        OR CONCAT(er.nombre, ' ', er.apellido) LIKE :buscar9
     )";
 
-    $params[':buscar'] = "%{$buscar}%";
+    $valorBuscar = "%{$buscar}%";
+
+    $params[':buscar1'] = $valorBuscar;
+    $params[':buscar2'] = $valorBuscar;
+    $params[':buscar3'] = $valorBuscar;
+    $params[':buscar4'] = $valorBuscar;
+    $params[':buscar5'] = $valorBuscar;
+    $params[':buscar6'] = $valorBuscar;
+    $params[':buscar7'] = $valorBuscar;
+    $params[':buscar8'] = $valorBuscar;
+    $params[':buscar9'] = $valorBuscar;
 }
 
 if ($estadoFiltro !== '') {
@@ -193,7 +222,9 @@ $sqlPrestamos = "
         p.id_prestamo,
         p.id_empleado,
         p.id_usuario_entrega,
+        p.id_cuenta_responsable,
         p.id_recurso,
+        p.cantidad,
         p.fecha_solicitud,
         p.fecha_entrega,
         p.fecha_devolucion_programada,
@@ -204,17 +235,63 @@ $sqlPrestamos = "
         p.observaciones,
         p.observaciones_devolucion,
 
+        /* PERSONA RECEPTORA */
+
         u.nombre AS receptor_nombre,
         u.apellido AS receptor_apellido,
         u.tipo_usuario AS receptor_tipo,
         u.correo AS receptor_correo,
         u.telefono AS receptor_telefono,
 
-        e.nombre AS responsable_nombre,
-        e.apellido AS responsable_apellido,
-        e.cargo AS responsable_cargo,
-        e.correo AS responsable_correo,
-        e.telefono AS responsable_telefono,
+        /* EMPLEADO ASOCIADO */
+
+        e.nombre AS empleado_nombre,
+        e.apellido AS empleado_apellido,
+        e.cargo AS empleado_cargo,
+
+        /* CUENTA RESPONSABLE */
+
+        ca.id_cuenta AS responsable_id_cuenta,
+        ca.nombre_usuario AS responsable_usuario,
+        ca.correo AS responsable_correo,
+        ca.id_rol AS responsable_id_rol,
+
+        CASE
+            WHEN ca.id_rol = 1 THEN
+                COALESCE(
+                    NULLIF(TRIM(CONCAT(a.nombre, ' ', a.apellido)), ''),
+                    ca.nombre_usuario
+                )
+
+            WHEN ca.id_rol = 2 THEN
+                COALESCE(
+                    NULLIF(TRIM(CONCAT(er.nombre, ' ', er.apellido)), ''),
+                    ca.nombre_usuario
+                )
+
+            ELSE
+                COALESCE(ca.nombre_usuario, 'No registrado')
+        END AS responsable_nombre,
+
+        CASE
+            WHEN ca.id_rol = 1 THEN 'Administrador'
+            WHEN ca.id_rol = 2 THEN 'Empleado'
+            ELSE 'No registrado'
+        END AS responsable_rol,
+
+        CASE
+            WHEN ca.id_rol = 1 THEN 'Administrador'
+            WHEN ca.id_rol = 2 THEN er.cargo
+            ELSE NULL
+        END AS responsable_cargo,
+
+        CASE
+            WHEN ca.id_rol = 1 THEN a.telefono
+            WHEN ca.id_rol = 2 THEN er.telefono
+            ELSE NULL
+        END AS responsable_telefono,
+
+        /* RECURSO */
 
         r.nombre_recurso,
         r.codigo_interno
@@ -226,6 +303,15 @@ $sqlPrestamos = "
 
     LEFT JOIN empleado e
         ON p.id_empleado = e.id_empleado
+
+    LEFT JOIN cuenta_acceso ca
+        ON p.id_cuenta_responsable = ca.id_cuenta
+
+    LEFT JOIN administrador a
+        ON a.id_cuenta = ca.id_cuenta
+
+    LEFT JOIN empleado er
+        ON er.id_empleado = ca.id_empleado
 
     LEFT JOIN recurso r
         ON p.id_recurso = r.id_recurso
@@ -272,11 +358,11 @@ require_once __DIR__ . '/../includes/navbar.php';
 <link rel="stylesheet" href="../CSS/prestamos.css">
 
 <main class="main-content">
+
 <div class="prestamos-page">
 
-    <!-- ENCABEZADO -->
-
     <div class="page-heading">
+
         <div>
             <h1>Gestión de préstamos</h1>
             <p>Administra la entrega y devolución de los recursos institucionales.</p>
@@ -287,19 +373,19 @@ require_once __DIR__ . '/../includes/navbar.php';
             class="btn btn-primary btn-prestamo-principal"
             data-bs-toggle="modal"
             data-bs-target="#modalPrestamo"
-            onclick="prepararNuevoPrestamo()"
-            <?= !$puedeRegistrar ? 'disabled' : '' ?>
-        >
+            onclick="prepararNuevoPrestamo()">
+
             <i class="bi bi-plus-circle"></i>
             Registrar préstamo
-        </button>
-    </div>
 
-    <!-- MENSAJES -->
+        </button>
+
+    </div>
 
     <?php if (!empty($_GET['mensaje'])): ?>
 
         <div class="alert alert-info alert-dismissible fade show">
+
             <?= h($_GET['mensaje']) ?>
 
             <button
@@ -307,38 +393,33 @@ require_once __DIR__ . '/../includes/navbar.php';
                 class="btn-close"
                 data-bs-dismiss="alert">
             </button>
+
         </div>
 
     <?php endif; ?>
 
-    <?php if ($esEmpleado && !$empleadoSesion): ?>
+    <div class="alert alert-light border">
 
-        <div class="alert alert-danger">
-            Tu cuenta no tiene un empleado activo asociado.
-            Comunícate con el administrador para solucionar esta relación.
-        </div>
+        <i class="bi bi-shield-check"></i>
 
-    <?php elseif ($esEmpleado): ?>
+        <strong>Sesión de administrador:</strong>
 
-        <div class="alert alert-light border">
-            <i class="bi bi-person-check"></i>
-            Estás consultando tus propios préstamos.
-        </div>
+        <?= h($responsableSesion['nombre_responsable']) ?>
 
-    <?php elseif ($esAdministrador): ?>
+        <span class="text-muted">
+            (<?= h($responsableSesion['correo']) ?>)
+        </span>
 
-        <div class="alert alert-light border">
-            <i class="bi bi-shield-check"></i>
-            Sesión de administrador. Tienes acceso a todos los préstamos.
-        </div>
+        Tienes acceso a todos los préstamos.
 
-    <?php endif; ?>
+    </div>
 
     <!-- RESUMEN -->
 
     <div class="resumen-prestamos">
 
         <div class="prestamo-card">
+
             <div class="prestamo-icono">
                 <i class="bi bi-journal-text"></i>
             </div>
@@ -347,9 +428,11 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <span>Total de préstamos</span>
                 <h3><?= $totalPrestamos ?></h3>
             </div>
+
         </div>
 
         <div class="prestamo-card">
+
             <div class="prestamo-icono">
                 <i class="bi bi-box-arrow-up-right"></i>
             </div>
@@ -358,9 +441,11 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <span>Activos</span>
                 <h3><?= $activos ?></h3>
             </div>
+
         </div>
 
         <div class="prestamo-card">
+
             <div class="prestamo-icono">
                 <i class="bi bi-clock-history"></i>
             </div>
@@ -369,9 +454,11 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <span>Pendientes</span>
                 <h3><?= $pendientes ?></h3>
             </div>
+
         </div>
 
         <div class="prestamo-card">
+
             <div class="prestamo-icono">
                 <i class="bi bi-exclamation-circle"></i>
             </div>
@@ -380,6 +467,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <span>Vencidos</span>
                 <h3><?= $vencidos ?></h3>
             </div>
+
         </div>
 
     </div>
@@ -389,15 +477,18 @@ require_once __DIR__ . '/../includes/navbar.php';
     <section class="filtros-prestamos">
 
         <div class="filtros-prestamos-header">
+
             <h5 class="filtros-prestamos-titulo">
                 <i class="bi bi-funnel"></i>
                 Filtrar préstamos
             </h5>
+
         </div>
 
         <form method="GET" class="row g-3 align-items-end">
 
             <div class="col-md-5">
+
                 <label class="form-label">Buscar</label>
 
                 <input
@@ -406,9 +497,11 @@ require_once __DIR__ . '/../includes/navbar.php';
                     class="form-control"
                     placeholder="Persona, responsable o recurso..."
                     value="<?= h($buscar) ?>">
+
             </div>
 
             <div class="col-md-3">
+
                 <label class="form-label">Fecha desde</label>
 
                 <input
@@ -416,9 +509,11 @@ require_once __DIR__ . '/../includes/navbar.php';
                     name="desde"
                     class="form-control"
                     value="<?= h($fechaDesde) ?>">
+
             </div>
 
             <div class="col-md-2">
+
                 <label class="form-label">Estado</label>
 
                 <select name="estado" class="form-select">
@@ -438,6 +533,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                     <?php endforeach; ?>
 
                 </select>
+
             </div>
 
             <div class="col-md-2 d-flex gap-2">
@@ -453,6 +549,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             </div>
 
         </form>
+
     </section>
 
     <!-- TABLA -->
@@ -474,6 +571,7 @@ require_once __DIR__ . '/../includes/navbar.php';
             <table class="table tabla-prestamos align-middle">
 
                 <thead>
+
                     <tr>
                         <th>Código</th>
                         <th>Persona que recibe</th>
@@ -484,6 +582,7 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
+
                 </thead>
 
                 <tbody>
@@ -504,21 +603,8 @@ require_once __DIR__ . '/../includes/navbar.php';
                         <?php
                         $claseEstado = strtolower($p['estado'] ?? '');
 
-                        $nombreResponsable = trim(
-                            ($p['responsable_nombre'] ?? '') . ' ' .
-                            ($p['responsable_apellido'] ?? '')
-                        );
-
-                        if (empty($p['id_empleado'])) {
-                            $nombreResponsable = 'Administrador';
-                        }
-
-                        $puedeEditarPrestamo = $esAdministrador ||
-                            (
-                                $esEmpleado &&
-                                $empleadoSesion &&
-                                (int)$p['id_empleado'] === (int)$idEmpleadoSesion
-                            );
+                        $nombreResponsable = $p['responsable_nombre']
+                            ?? 'No registrado';
                         ?>
 
                         <tr>
@@ -528,10 +614,14 @@ require_once __DIR__ . '/../includes/navbar.php';
                             </td>
 
                             <td>
+
                                 <div class="identidad-prestamo">
 
                                     <strong>
-                                        <?= h(($p['receptor_nombre'] ?? '') . ' ' . ($p['receptor_apellido'] ?? '')) ?>
+                                        <?= h(
+                                            ($p['receptor_nombre'] ?? '') . ' ' .
+                                            ($p['receptor_apellido'] ?? '')
+                                        ) ?>
                                     </strong>
 
                                     <small><?= h($p['receptor_tipo']) ?></small>
@@ -539,20 +629,25 @@ require_once __DIR__ . '/../includes/navbar.php';
                                     <small><?= h($p['receptor_telefono']) ?></small>
 
                                 </div>
+
                             </td>
 
                             <td>
+
                                 <div class="recurso-prestamo">
 
-                                    <strong>
-                                        <?= h($p['nombre_recurso']) ?>
-                                    </strong>
+                                    <strong><?= h($p['nombre_recurso']) ?></strong>
 
                                     <small>
                                         Código: <?= h($p['codigo_interno']) ?>
                                     </small>
 
+                                    <small>
+                                        Cantidad: <?= h($p['cantidad']) ?>
+                                    </small>
+
                                 </div>
+
                             </td>
 
                             <td><?= h($p['fecha_entrega']) ?></td>
@@ -560,63 +655,78 @@ require_once __DIR__ . '/../includes/navbar.php';
                             <td><?= h($p['fecha_devolucion_programada']) ?></td>
 
                             <td>
+
                                 <div class="identidad-prestamo">
 
                                     <strong><?= h($nombreResponsable) ?></strong>
 
-                                    <?php if (!empty($p['id_empleado'])): ?>
+                                    <small>
+                                        <?= h($p['responsable_rol'] ?? 'No registrado') ?>
+                                    </small>
 
-                                        <small><?= h($p['responsable_cargo']) ?></small>
+                                    <?php if (!empty($p['responsable_correo'])): ?>
                                         <small><?= h($p['responsable_correo']) ?></small>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($p['responsable_telefono'])): ?>
                                         <small><?= h($p['responsable_telefono']) ?></small>
+                                    <?php endif; ?>
 
-                                    <?php else: ?>
+                                    <?php if (!empty($p['responsable_cargo'])): ?>
+                                        <small><?= h($p['responsable_cargo']) ?></small>
+                                    <?php endif; ?>
 
-                                        <small>Cuenta administradora</small>
-
+                                    <?php if (empty($p['responsable_id_cuenta'])): ?>
+                                        <small class="text-muted">
+                                            Responsable histórico no registrado
+                                        </small>
                                     <?php endif; ?>
 
                                 </div>
+
                             </td>
 
                             <td>
+
                                 <span class="estado-prestamo <?= h($claseEstado) ?>">
                                     <?= h($p['estado']) ?>
                                 </span>
+
                             </td>
 
                             <td>
 
                                 <div class="acciones-prestamo">
 
-                                    <?php if ($puedeEditarPrestamo): ?>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        title="Editar préstamo"
+                                        onclick='editarPrestamo(<?= json_encode(
+                                            $p,
+                                            JSON_HEX_APOS |
+                                            JSON_HEX_QUOT |
+                                            JSON_HEX_TAG |
+                                            JSON_HEX_AMP
+                                        ) ?>)'>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-outline-primary"
-                                            title="Editar préstamo"
-                                            onclick='editarPrestamo(<?= json_encode(
-                                                $p,
-                                                JSON_HEX_APOS |
-                                                JSON_HEX_QUOT |
-                                                JSON_HEX_TAG |
-                                                JSON_HEX_AMP
-                                            ) ?>)'>
+                                        <i class="bi bi-pencil-square"></i>
 
-                                            <i class="bi bi-pencil-square"></i>
+                                    </button>
 
-                                        </button>
-
-                                    <?php endif; ?>
-
-                                    <?php if ($esAdministrador): ?>
+                                    <?php if (in_array($p['estado'], ['Pendiente', 'Cancelado'], true)): ?>
 
                                         <form
                                             action="../controllers/PrestamoController.php"
                                             method="POST"
-                                            onsubmit="return confirm('¿Estás seguro de eliminar este préstamo? Solo se podrán eliminar préstamos pendientes o cancelados.');">
+                                            onsubmit="return confirm('¿Estás seguro de eliminar este préstamo?');">
 
-                                            <input type="hidden" name="accion" value="eliminar">
+                                            <?= rs_csrf_field() ?>
+
+                                            <input
+                                                type="hidden"
+                                                name="accion"
+                                                value="eliminar">
 
                                             <input
                                                 type="hidden"
@@ -636,10 +746,6 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                                     <?php endif; ?>
 
-                                    <?php if (!$puedeEditarPrestamo && !$esAdministrador): ?>
-                                        <span class="text-muted">Sin acciones</span>
-                                    <?php endif; ?>
-
                                 </div>
 
                             </td>
@@ -651,17 +757,18 @@ require_once __DIR__ . '/../includes/navbar.php';
                 <?php endif; ?>
 
                 </tbody>
+
             </table>
 
         </div>
+
     </section>
 
 </div>
+
 </main>
 
-<!-- =====================================================
-     MODAL REGISTRAR / EDITAR
-===================================================== -->
+<!-- MODAL -->
 
 <div
     class="modal fade modal-prestamo"
@@ -676,6 +783,8 @@ require_once __DIR__ . '/../includes/navbar.php';
             <form
                 action="../controllers/PrestamoController.php"
                 method="POST">
+
+                <?= rs_csrf_field() ?>
 
                 <div class="modal-header">
 
@@ -697,10 +806,16 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                 <div class="modal-body">
 
-                    <input type="hidden" name="accion" id="accionPrestamo" value="guardar">
-                    <input type="hidden" name="id_prestamo" id="id_prestamo">
+                    <input
+                        type="hidden"
+                        name="accion"
+                        id="accionPrestamo"
+                        value="guardar">
 
-                    <!-- PERSONA RECEPTORA -->
+                    <input
+                        type="hidden"
+                        name="id_prestamo"
+                        id="id_prestamo">
 
                     <h6 class="mb-3">
                         <i class="bi bi-person"></i>
@@ -724,8 +839,10 @@ require_once __DIR__ . '/../includes/navbar.php';
                             <?php foreach ($usuarios as $usuario): ?>
 
                                 <option value="<?= h($usuario['id_usuario']) ?>">
+
                                     <?= h($usuario['nombre'] . ' ' . $usuario['apellido']) ?>
                                     - <?= h($usuario['tipo_usuario']) ?>
+
                                 </option>
 
                             <?php endforeach; ?>
@@ -760,77 +877,68 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                     <hr>
 
-                    <!-- RESPONSABLE -->
-
                     <h6 class="mb-3">
                         <i class="bi bi-person-check"></i>
                         Información de quien entrega el recurso
                     </h6>
 
-                    <?php if ($empleadoSesion): ?>
+                    <div class="alert alert-light border">
 
-                        <div class="alert alert-light border">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-person-badge fs-4"></i>
+                            <strong>Responsable de la sesión actual</strong>
+                        </div>
 
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <i class="bi bi-person-badge fs-4"></i>
-                                <strong>Responsable asignado automáticamente</strong>
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    value="<?= h($responsableSesion['nombre_responsable']) ?>"
+                                    readonly>
                             </div>
 
-                            <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Rol</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    value="<?= h($responsableSesion['rol_nombre']) ?>"
+                                    readonly>
+                            </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Nombre</label>
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        value="<?= h($empleadoSesion['nombre'] . ' ' . $empleadoSesion['apellido']) ?>"
-                                        readonly>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Correo</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    value="<?= h($responsableSesion['correo']) ?>"
+                                    readonly>
+                            </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Cargo</label>
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        value="<?= h($empleadoSesion['cargo']) ?>"
-                                        readonly>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Teléfono</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    value="<?= h($responsableSesion['telefono_responsable'] ?? 'No registrado') ?>"
+                                    readonly>
+                            </div>
 
-                                <div class="col-md-6">
-                                    <label class="form-label">Correo</label>
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        value="<?= h($empleadoSesion['correo']) ?>"
-                                        readonly>
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label class="form-label">Teléfono</label>
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        value="<?= h($empleadoSesion['telefono']) ?>"
-                                        readonly>
-                                </div>
-
+                            <div class="col-md-6">
+                                <label class="form-label">Cargo</label>
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    value="<?= h($responsableSesion['cargo_responsable'] ?? 'No registrado') ?>"
+                                    readonly>
                             </div>
 
                         </div>
 
-                    <?php elseif ($esAdministrador): ?>
-
-                        <div class="alert alert-light border">
-                            <i class="bi bi-shield-check fs-4"></i>
-                            <strong>Administrador</strong>
-                            <p class="mb-0">
-                                El préstamo quedará registrado a nombre de la cuenta administradora.
-                            </p>
-                        </div>
-
-                    <?php endif; ?>
-
-                    <!-- RECURSO -->
+                    </div>
 
                     <hr>
 
@@ -857,11 +965,12 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                                 <option
                                     value="<?= h($recurso['id_recurso']) ?>"
-                                    data-disponibilidad="<?= h($recurso['disponibilidad']) ?>">
+                                    data-disponibilidad="<?= h($recurso['disponibilidad']) ?>"
+                                    data-disponible="<?= h($recurso['stock_disponible']) ?>">
 
                                     <?= h($recurso['nombre_recurso']) ?>
                                     - <?= h($recurso['codigo_interno']) ?>
-                                    (<?= h($recurso['disponibilidad']) ?>)
+                                    (<?= h($recurso['stock_disponible']) ?> disponibles)
 
                                 </option>
 
@@ -878,7 +987,22 @@ require_once __DIR__ . '/../includes/navbar.php';
                     <div class="row g-3">
 
                         <div class="col-md-6">
+                            <label for="cantidad" class="form-label">
+                                Cantidad de unidades *
+                            </label>
 
+                            <input
+                                type="number"
+                                name="cantidad"
+                                id="cantidad"
+                                class="form-control"
+                                min="1"
+                                step="1"
+                                value="1"
+                                required>
+                        </div>
+
+                        <div class="col-md-6">
                             <label for="estado_recurso_entrega" class="form-label">
                                 Estado al entregar
                             </label>
@@ -894,11 +1018,9 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 <option value="Dañado">Dañado</option>
 
                             </select>
-
                         </div>
 
                         <div class="col-md-6">
-
                             <label for="fecha_solicitud" class="form-label">
                                 Fecha de solicitud *
                             </label>
@@ -909,11 +1031,9 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="fecha_solicitud"
                                 class="form-control"
                                 required>
-
                         </div>
 
                         <div class="col-md-6">
-
                             <label for="fecha_entrega" class="form-label">
                                 Fecha de entrega *
                             </label>
@@ -924,11 +1044,9 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="fecha_entrega"
                                 class="form-control"
                                 required>
-
                         </div>
 
                         <div class="col-md-6">
-
                             <label for="fecha_devolucion_programada" class="form-label">
                                 Fecha de devolución programada *
                             </label>
@@ -939,12 +1057,9 @@ require_once __DIR__ . '/../includes/navbar.php';
                                 id="fecha_devolucion_programada"
                                 class="form-control"
                                 required>
-
                         </div>
 
                     </div>
-
-                    <!-- FECHA REAL -->
 
                     <div class="mt-3" id="grupoFechaReal" style="display:none;">
 
@@ -959,8 +1074,6 @@ require_once __DIR__ . '/../includes/navbar.php';
                             class="form-control">
 
                     </div>
-
-                    <!-- ESTADO DEL PRÉSTAMO -->
 
                     <div class="mt-3" id="grupoEstadoPrestamo" style="display:none;">
 
@@ -977,8 +1090,6 @@ require_once __DIR__ . '/../includes/navbar.php';
                         </select>
 
                     </div>
-
-                    <!-- ESTADO DE DEVOLUCIÓN -->
 
                     <div class="mt-3" id="grupoEstadoDevolucion" style="display:none;">
 
@@ -999,8 +1110,6 @@ require_once __DIR__ . '/../includes/navbar.php';
                         </select>
 
                     </div>
-
-                    <!-- OBSERVACIONES -->
 
                     <div class="mt-3">
 
@@ -1038,9 +1147,12 @@ require_once __DIR__ . '/../includes/navbar.php';
                     </div>
 
                     <div class="aviso-prestamo mt-3">
+
                         <i class="bi bi-info-circle"></i>
+
                         La persona receptora se selecciona de los usuarios registrados.
                         El responsable se identifica automáticamente según la cuenta que inició sesión.
+
                     </div>
 
                 </div>
@@ -1056,8 +1168,7 @@ require_once __DIR__ . '/../includes/navbar.php';
 
                     <button
                         type="submit"
-                        class="btn btn-primary btn-prestamo-principal"
-                        <?= !$puedeRegistrar ? 'disabled' : '' ?>>
+                        class="btn btn-primary btn-prestamo-principal">
 
                         <i class="bi bi-save"></i>
                         Guardar préstamo
@@ -1073,10 +1184,6 @@ require_once __DIR__ . '/../includes/navbar.php';
     </div>
 
 </div>
-
-<!-- =====================================================
-     JAVASCRIPT
-===================================================== -->
 
 <script>
 
@@ -1113,8 +1220,6 @@ selectorReceptor.addEventListener('change', function () {
     mostrarDatosReceptor(this.value);
 });
 
-/* FECHA LOCAL */
-
 function obtenerFechaLocal() {
 
     const hoy = new Date();
@@ -1123,8 +1228,6 @@ function obtenerFechaLocal() {
         hoy.getTime() - hoy.getTimezoneOffset() * 60000
     ).toISOString().slice(0, 10);
 }
-
-/* PREPARAR NUEVO PRÉSTAMO */
 
 function prepararNuevoPrestamo() {
 
@@ -1138,6 +1241,7 @@ function prepararNuevoPrestamo() {
     mostrarDatosReceptor('');
 
     document.getElementById('id_recurso').value = '';
+    document.getElementById('cantidad').value = '1';
 
     const fechaLocal = obtenerFechaLocal();
 
@@ -1159,8 +1263,6 @@ function prepararNuevoPrestamo() {
     document.getElementById('estado').value = 'Activo';
 }
 
-/* EDITAR PRÉSTAMO */
-
 function editarPrestamo(p) {
 
     prepararNuevoPrestamo();
@@ -1175,6 +1277,7 @@ function editarPrestamo(p) {
     mostrarDatosReceptor(p.id_usuario_entrega);
 
     document.getElementById('id_recurso').value = p.id_recurso || '';
+    document.getElementById('cantidad').value = p.cantidad || '1';
 
     document.getElementById('fecha_solicitud').value =
         p.fecha_solicitud || '';
@@ -1218,6 +1321,8 @@ function editarPrestamo(p) {
 </script>
 
 <?php
+
 require_once __DIR__ . '/../includes/footer.php';
 require_once __DIR__ . '/../includes/scripts.php';
+
 ?>

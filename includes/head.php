@@ -34,7 +34,7 @@ if ($dashboardType === 'AD') {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="RecurSoft - Sistema de Gestión de Recursos Institucionales">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#17375E">
     <title><?php echo rs_h($pageTitle); ?> | RecurSoft</title>
 
     <link rel="icon" href="<?php echo rs_h(RS_BASE); ?>IMG/logo.png" type="image/png">
@@ -52,6 +52,7 @@ if ($dashboardType === 'AD') {
     <?php elseif ($dashboardType === 'EM'): ?>
         <link rel="stylesheet" href="<?php echo rs_h(RS_BASE); ?>CSS/Empleado.css">
     <?php endif; ?>
+    <link rel="stylesheet" href="<?php echo rs_h(RS_BASE); ?>CSS/tema-institucional.css">
 </head>
 <body class="<?php echo rs_h(trim($bodyClass)); ?>">
 <?php if ($dashboardType !== 'login'): ?>

@@ -88,9 +88,14 @@ try {
 }
 ?>
 
-<?php include __DIR__ . '/../includes/head.php'; ?>
+<?php
+$pageTitle = 'Empleados';
+$dashboardType = 'AD';
+$activePage = 'empleados';
+include __DIR__ . '/../includes/head.php';
+?>
 
-<link rel="stylesheet" href="../CSS/empleados.css">
+<link rel="stylesheet" href="../CSS/Empleados.css">
 
 <?php include __DIR__ . '/../includes/slider.php'; ?>
 
