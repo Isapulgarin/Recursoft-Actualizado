@@ -2,6 +2,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/auth.php';
+
 $usuarioSesion = rs_requiere_login();
 $conexion = rs_pdo();
 
@@ -11,14 +12,18 @@ $conexion = rs_pdo();
 
 function volverPrestamos($mensaje)
 {
-    $usuario = rs_usuario_sesion();
-    $destino = (int) ($usuario['id_rol'] ?? 0) === 2
-        ? 'dashboardEM/prestamos.php?'
-        : 'dashboardAD/prestamos.php?';
+    global $usuarioSesion;
 
-    rs_redirect($destino . http_build_query([
-        'mensaje' => $mensaje
-    ]));
+    $rol = (int)($usuarioSesion['id_rol'] ?? 0);
+
+    if ($rol === 2) {
+        $ruta = '/RECURSOFT/dashboardEM/prestamos.php';
+    } else {
+        $ruta = '/RECURSOFT/dashboardAD/prestamos.php';
+    }
+
+    rs_redirect($ruta . '?mensaje=' . urlencode($mensaje));
+    exit;
 }
 
 function fechaValida($fecha)
@@ -43,7 +48,9 @@ function idPositivo($valor)
 {
     $id = filter_var($valor, FILTER_VALIDATE_INT);
 
-    return ($id !== false && $id > 0) ? (int)$id : null;
+    return ($id !== false && $id > 0)
+        ? (int)$id
+        : null;
 }
 
 /* =====================================================
@@ -51,6 +58,7 @@ function idPositivo($valor)
 ===================================================== */
 
 $idRolSesion = (int)($usuarioSesion['id_rol'] ?? 0);
+$idCuentaSesion = idPositivo($usuarioSesion['id_cuenta'] ?? null);
 $idEmpleadoSesion = idPositivo($usuarioSesion['id_empleado'] ?? null);
 
 $esAdministrador = $idRolSesion === 1;
@@ -60,7 +68,53 @@ if (!$esAdministrador && !$esEmpleado) {
     volverPrestamos('No tienes permisos para realizar esta operación.');
 }
 
+if (!$idCuentaSesion) {
+    volverPrestamos('No se pudo identificar la cuenta que inició sesión.');
+}
+
+/* =====================================================
+   VALIDAR CUENTA AUTENTICADA
+===================================================== */
+
+$validarCuenta = $conexion->prepare("
+    SELECT
+        id_cuenta,
+        id_rol,
+        id_empleado,
+        estado
+    FROM cuenta_acceso
+    WHERE id_cuenta = :id
+    LIMIT 1
+");
+
+$validarCuenta->execute([
+    ':id' => $idCuentaSesion
+]);
+
+$cuentaActual = $validarCuenta->fetch(PDO::FETCH_ASSOC);
+
+if (
+    !$cuentaActual ||
+    (int)$cuentaActual['id_rol'] !== $idRolSesion ||
+    $cuentaActual['estado'] !== 'Activo'
+) {
+    volverPrestamos('La cuenta que inició sesión no es válida o está inactiva.');
+}
+
+/*
+ * USAR EL ID CONFIRMADO EN LA BASE DE DATOS.
+ *
+ * Este será el responsable que se almacenará en el préstamo.
+ */
+
+$idCuentaResponsable = (int)$cuentaActual['id_cuenta'];
+
+/* =====================================================
+   VALIDAR EMPLEADO DE LA SESIÓN
+===================================================== */
+
 if ($esEmpleado) {
+
     if (!$idEmpleadoSesion) {
         volverPrestamos('Tu cuenta no tiene un empleado asociado.');
     }
@@ -73,10 +127,18 @@ if ($esEmpleado) {
         LIMIT 1
     ");
 
-    $validarSesion->execute([':id' => $idEmpleadoSesion]);
+    $validarSesion->execute([
+        ':id' => $idEmpleadoSesion
+    ]);
 
     if (!$validarSesion->fetch(PDO::FETCH_ASSOC)) {
         volverPrestamos('El empleado asociado a tu cuenta no existe o está inactivo.');
+    }
+
+    if (
+        (int)$cuentaActual['id_empleado'] !== $idEmpleadoSesion
+    ) {
+        volverPrestamos('La relación entre tu cuenta y tu empleado no es válida.');
     }
 }
 
@@ -98,10 +160,12 @@ function validarEmpleado($conexion, $idEmpleado)
         FOR UPDATE
     ");
 
-    $consulta->execute([':id' => $idEmpleado]);
+    $consulta->execute([
+        ':id' => $idEmpleado
+    ]);
 
     if (!$consulta->fetch(PDO::FETCH_ASSOC)) {
-        throw new Exception('El empleado responsable no existe o está inactivo.');
+        throw new Exception('El empleado asociado no existe o está inactivo.');
     }
 }
 
@@ -117,7 +181,9 @@ function validarUsuarioReceptor($conexion, $idUsuario)
         FOR UPDATE
     ");
 
-    $consulta->execute([':id' => $idUsuario]);
+    $consulta->execute([
+        ':id' => $idUsuario
+    ]);
 
     if (!$consulta->fetch(PDO::FETCH_ASSOC)) {
         throw new Exception('La persona receptora no existe, está inactiva o no tiene tipo de usuario.');
@@ -130,13 +196,17 @@ function obtenerRecursoBloqueado($conexion, $idRecurso)
         SELECT
             id_recurso,
             estado,
-            disponibilidad
+            disponibilidad,
+            stock_total,
+            stock_disponible
         FROM recurso
         WHERE id_recurso = :id
         FOR UPDATE
     ");
 
-    $consulta->execute([':id' => $idRecurso]);
+    $consulta->execute([
+        ':id' => $idRecurso
+    ]);
 
     $recurso = $consulta->fetch(PDO::FETCH_ASSOC);
 
@@ -147,16 +217,22 @@ function obtenerRecursoBloqueado($conexion, $idRecurso)
     return $recurso;
 }
 
-function recursoTienePrestamoActivo($conexion, $idRecurso, $idExcluir = null)
+/* =====================================================
+   UNIDADES RESERVADAS
+===================================================== */
+
+function unidadesReservadas($conexion, $idRecurso, $idExcluir = null)
 {
     $sql = "
-        SELECT COUNT(*)
+        SELECT COALESCE(SUM(cantidad), 0)
         FROM prestamo
         WHERE id_recurso = :recurso
           AND estado IN ('Activo', 'Vencido')
     ";
 
-    $parametros = [':recurso' => $idRecurso];
+    $parametros = [
+        ':recurso' => $idRecurso
+    ];
 
     if ($idExcluir !== null) {
         $sql .= " AND id_prestamo <> :excluir";
@@ -166,26 +242,26 @@ function recursoTienePrestamoActivo($conexion, $idRecurso, $idExcluir = null)
     $consulta = $conexion->prepare($sql);
     $consulta->execute($parametros);
 
-    return (int)$consulta->fetchColumn() > 0;
+    return (int)$consulta->fetchColumn();
 }
 
 /* =====================================================
-   ACTUALIZAR DISPONIBILIDAD DEL RECURSO
+   ACTUALIZAR DISPONIBILIDAD
 ===================================================== */
 
 function actualizarDisponibilidad($conexion, $idRecurso)
 {
     $recurso = obtenerRecursoBloqueado($conexion, $idRecurso);
 
-    /*
-       Se respeta este orden de prioridad:
+    $reservadas = unidadesReservadas(
+        $conexion,
+        $idRecurso
+    );
 
-       1. Si está dañado, queda fuera de servicio.
-       2. Si está en mantenimiento, conserva ese estado.
-       3. Si está fuera de servicio, conserva ese estado.
-       4. Si tiene préstamo activo, queda prestado.
-       5. En los demás casos, queda disponible.
-    */
+    $disponibles = max(
+        0,
+        (int)$recurso['stock_total'] - $reservadas
+    );
 
     if ($recurso['estado'] === 'Dañado') {
         $disponibilidad = 'Fuera de servicio';
@@ -193,7 +269,7 @@ function actualizarDisponibilidad($conexion, $idRecurso)
         $disponibilidad = 'Mantenimiento';
     } elseif ($recurso['disponibilidad'] === 'Fuera de servicio') {
         $disponibilidad = 'Fuera de servicio';
-    } elseif (recursoTienePrestamoActivo($conexion, $idRecurso)) {
+    } elseif ($disponibles === 0) {
         $disponibilidad = 'Prestado';
     } else {
         $disponibilidad = 'Disponible';
@@ -201,22 +277,33 @@ function actualizarDisponibilidad($conexion, $idRecurso)
 
     $actualizar = $conexion->prepare("
         UPDATE recurso
-        SET disponibilidad = :disponibilidad
+        SET stock_disponible = :stock_disponible,
+            disponibilidad = :disponibilidad
         WHERE id_recurso = :id
     ");
 
     $actualizar->execute([
+        ':stock_disponible' => in_array(
+            $disponibilidad,
+            ['Mantenimiento', 'Fuera de servicio'],
+            true
+        ) ? 0 : $disponibles,
+
         ':disponibilidad' => $disponibilidad,
         ':id' => $idRecurso
     ]);
 }
 
 /* =====================================================
-   COMPROBAR MÉTODO Y ACCIÓN
+   COMPROBAR MÉTODO Y CSRF
 ===================================================== */
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     volverPrestamos('Acceso no permitido.');
+}
+
+if (!rs_csrf_ok()) {
+    volverPrestamos('La sesión del formulario expiró. Vuelve a intentarlo.');
 }
 
 $accion = $_POST['accion'] ?? '';
@@ -233,20 +320,38 @@ try {
             ? null
             : $idEmpleadoSesion;
 
-        $idUsuarioEntrega = idPositivo($_POST['id_usuario_entrega'] ?? null);
-        $idRecurso = idPositivo($_POST['id_recurso'] ?? null);
+        $idUsuarioEntrega = idPositivo(
+            $_POST['id_usuario_entrega'] ?? null
+        );
+
+        $idRecurso = idPositivo(
+            $_POST['id_recurso'] ?? null
+        );
+
+        $cantidad = idPositivo(
+            $_POST['cantidad'] ?? 1
+        );
 
         $fechaSolicitud = trim($_POST['fecha_solicitud'] ?? '');
         $fechaEntrega = trim($_POST['fecha_entrega'] ?? '');
         $fechaProgramada = trim($_POST['fecha_devolucion_programada'] ?? '');
 
-        $estadoRecursoEntrega = trim($_POST['estado_recurso_entrega'] ?? '');
-        $observaciones = trim($_POST['observaciones'] ?? '');
+        $estadoRecursoEntrega = trim(
+            $_POST['estado_recurso_entrega'] ?? ''
+        );
 
-        $estadosRecurso = ['Bueno', 'Regular', 'Dañado'];
+        $observaciones = trim(
+            $_POST['observaciones'] ?? ''
+        );
 
-        if (!$idUsuarioEntrega || !$idRecurso) {
-            volverPrestamos('Selecciona una persona y un recurso válidos.');
+        $estadosRecurso = [
+            'Bueno',
+            'Regular',
+            'Dañado'
+        ];
+
+        if (!$idUsuarioEntrega || !$idRecurso || !$cantidad) {
+            throw new Exception('Selecciona una persona, un recurso y una cantidad válidos.');
         }
 
         if (
@@ -254,56 +359,90 @@ try {
             !fechaValida($fechaEntrega) ||
             !fechaValida($fechaProgramada)
         ) {
-            volverPrestamos('Debes ingresar fechas válidas.');
+            throw new Exception('Debes ingresar fechas válidas.');
         }
 
         if ($fechaEntrega < $fechaSolicitud) {
-            volverPrestamos('La fecha de entrega no puede ser anterior a la solicitud.');
+            throw new Exception('La fecha de entrega no puede ser anterior a la solicitud.');
         }
 
         if ($fechaProgramada < $fechaEntrega) {
-            volverPrestamos('La devolución programada no puede ser anterior a la entrega.');
+            throw new Exception('La devolución programada no puede ser anterior a la entrega.');
         }
 
         if (
             $estadoRecursoEntrega !== '' &&
             !in_array($estadoRecursoEntrega, $estadosRecurso, true)
         ) {
-            volverPrestamos('El estado del recurso al entregarlo no es válido.');
+            throw new Exception('El estado del recurso al entregarlo no es válido.');
         }
 
         if ($estadoRecursoEntrega === 'Dañado') {
-            volverPrestamos('No puedes registrar la entrega de un recurso como dañado.');
+            throw new Exception('No puedes registrar la entrega de un recurso como dañado.');
         }
 
         if (longitudTexto($observaciones) > 150) {
-            volverPrestamos('Las observaciones no pueden superar los 150 caracteres.');
+            throw new Exception('Las observaciones no pueden superar los 150 caracteres.');
         }
 
         $conexion->beginTransaction();
 
         validarEmpleado($conexion, $idEmpleado);
-        validarUsuarioReceptor($conexion, $idUsuarioEntrega);
 
-        $recurso = obtenerRecursoBloqueado($conexion, $idRecurso);
+        validarUsuarioReceptor(
+            $conexion,
+            $idUsuarioEntrega
+        );
+
+        $recurso = obtenerRecursoBloqueado(
+            $conexion,
+            $idRecurso
+        );
 
         if ($recurso['estado'] === 'Dañado') {
             throw new Exception('No se puede prestar un recurso dañado.');
         }
 
-        if ($recurso['disponibilidad'] !== 'Disponible') {
-            throw new Exception('El recurso no está disponible para préstamo.');
+        if (
+            in_array(
+                $recurso['disponibilidad'],
+                ['Mantenimiento', 'Fuera de servicio'],
+                true
+            )
+        ) {
+            throw new Exception('El recurso está en mantenimiento o fuera de servicio.');
         }
 
-        if (recursoTienePrestamoActivo($conexion, $idRecurso)) {
-            throw new Exception('El recurso ya tiene un préstamo activo.');
+        $disponibles = max(
+            0,
+            (int)$recurso['stock_total'] -
+            unidadesReservadas($conexion, $idRecurso)
+        );
+
+        if ($cantidad > $disponibles) {
+            throw new Exception('La cantidad solicitada supera las unidades disponibles.');
+        }
+
+        /*
+         * REGISTRO DEL RESPONSABLE:
+         *
+         * Se utiliza $idCuentaResponsable, obtenido de la
+         * cuenta validada en la base de datos.
+         *
+         * No se utiliza un campo enviado desde el formulario.
+         */
+
+        if ($idCuentaResponsable <= 0) {
+            throw new Exception('No se pudo identificar al responsable del préstamo.');
         }
 
         $insertar = $conexion->prepare("
             INSERT INTO prestamo (
                 id_empleado,
                 id_usuario_entrega,
+                id_cuenta_responsable,
                 id_recurso,
+                cantidad,
                 fecha_solicitud,
                 fecha_entrega,
                 fecha_devolucion_programada,
@@ -316,7 +455,9 @@ try {
             ) VALUES (
                 :empleado,
                 :usuario,
+                :responsable,
                 :recurso,
+                :cantidad,
                 :solicitud,
                 :entrega,
                 :programada,
@@ -332,19 +473,39 @@ try {
         $insertar->execute([
             ':empleado' => $idEmpleado,
             ':usuario' => $idUsuarioEntrega,
+            ':responsable' => $idCuentaResponsable,
             ':recurso' => $idRecurso,
+            ':cantidad' => $cantidad,
             ':solicitud' => $fechaSolicitud,
             ':entrega' => $fechaEntrega,
             ':programada' => $fechaProgramada,
+
             ':estado_entrega' => $estadoRecursoEntrega !== ''
                 ? $estadoRecursoEntrega
                 : null,
+
             ':observaciones' => $observaciones !== ''
                 ? $observaciones
                 : null
         ]);
 
-        actualizarDisponibilidad($conexion, $idRecurso);
+        $idNuevoPrestamo = (int)$conexion->lastInsertId();
+
+        if ($idNuevoPrestamo <= 0) {
+            throw new Exception('No se pudo confirmar el registro del préstamo.');
+        }
+
+        actualizarDisponibilidad(
+            $conexion,
+            $idRecurso
+        );
+
+        rs_registrar_historial(
+            $idNuevoPrestamo,
+            'Prestamo registrado',
+            'Cantidad: ' . $cantidad,
+            $idCuentaResponsable
+        );
 
         $conexion->commit();
 
@@ -357,9 +518,21 @@ try {
 
     elseif ($accion === 'editar') {
 
-        $idPrestamo = idPositivo($_POST['id_prestamo'] ?? null);
-        $idUsuarioEntrega = idPositivo($_POST['id_usuario_entrega'] ?? null);
-        $idRecurso = idPositivo($_POST['id_recurso'] ?? null);
+        $idPrestamo = idPositivo(
+            $_POST['id_prestamo'] ?? null
+        );
+
+        $idUsuarioEntrega = idPositivo(
+            $_POST['id_usuario_entrega'] ?? null
+        );
+
+        $idRecurso = idPositivo(
+            $_POST['id_recurso'] ?? null
+        );
+
+        $cantidad = idPositivo(
+            $_POST['cantidad'] ?? 1
+        );
 
         $fechaSolicitud = trim($_POST['fecha_solicitud'] ?? '');
         $fechaEntrega = trim($_POST['fecha_entrega'] ?? '');
@@ -368,17 +541,38 @@ try {
 
         $estado = trim($_POST['estado'] ?? '');
 
-        $estadoRecursoEntrega = trim($_POST['estado_recurso_entrega'] ?? '');
-        $estadoRecursoDevolucion = trim($_POST['estado_recurso_devolucion'] ?? '');
+        $estadoRecursoEntrega = trim(
+            $_POST['estado_recurso_entrega'] ?? ''
+        );
 
-        $observaciones = trim($_POST['observaciones'] ?? '');
-        $observacionesDevolucion = trim($_POST['observaciones_devolucion'] ?? '');
+        $estadoRecursoDevolucion = trim(
+            $_POST['estado_recurso_devolucion'] ?? ''
+        );
 
-        $estadosPermitidos = ['Pendiente', 'Activo', 'Vencido', 'Devuelto', 'Cancelado'];
-        $estadosRecurso = ['Bueno', 'Regular', 'Dañado'];
+        $observaciones = trim(
+            $_POST['observaciones'] ?? ''
+        );
 
-        if (!$idPrestamo || !$idUsuarioEntrega || !$idRecurso) {
-            volverPrestamos('Los datos del préstamo no son válidos.');
+        $observacionesDevolucion = trim(
+            $_POST['observaciones_devolucion'] ?? ''
+        );
+
+        $estadosPermitidos = [
+            'Pendiente',
+            'Activo',
+            'Vencido',
+            'Devuelto',
+            'Cancelado'
+        ];
+
+        $estadosRecurso = [
+            'Bueno',
+            'Regular',
+            'Dañado'
+        ];
+
+        if (!$idPrestamo || !$idUsuarioEntrega || !$idRecurso || !$cantidad) {
+            throw new Exception('Los datos del préstamo no son válidos.');
         }
 
         if (
@@ -386,23 +580,23 @@ try {
             !fechaValida($fechaEntrega) ||
             !fechaValida($fechaProgramada)
         ) {
-            volverPrestamos('Debes ingresar fechas válidas.');
+            throw new Exception('Debes ingresar fechas válidas.');
         }
 
         if ($fechaEntrega < $fechaSolicitud) {
-            volverPrestamos('La fecha de entrega no puede ser anterior a la solicitud.');
+            throw new Exception('La fecha de entrega no puede ser anterior a la solicitud.');
         }
 
         if ($fechaProgramada < $fechaEntrega) {
-            volverPrestamos('La devolución programada no puede ser anterior a la entrega.');
+            throw new Exception('La fecha de devolución programada no puede ser anterior a la entrega.');
         }
 
         if (!in_array($estado, $estadosPermitidos, true)) {
-            volverPrestamos('El estado del préstamo no es válido.');
+            throw new Exception('El estado del préstamo no es válido.');
         }
 
         if ($fechaReal !== '' && !fechaValida($fechaReal)) {
-            volverPrestamos('La fecha de devolución real no es válida.');
+            throw new Exception('La fecha de devolución real no es válida.');
         }
 
         if ($estado === 'Devuelto' && $fechaReal === '') {
@@ -410,36 +604,37 @@ try {
         }
 
         if ($estado !== 'Devuelto' && $fechaReal !== '') {
-            volverPrestamos('La fecha real solo se registra cuando el préstamo está devuelto.');
+            throw new Exception('La fecha real solo se registra cuando el préstamo está devuelto.');
         }
 
         if ($fechaReal !== '' && $fechaReal < $fechaEntrega) {
-            volverPrestamos('La fecha de devolución real no puede ser anterior a la entrega.');
+            throw new Exception('La fecha de devolución real no puede ser anterior a la entrega.');
         }
 
         if (
             ($estadoRecursoEntrega !== '' &&
                 !in_array($estadoRecursoEntrega, $estadosRecurso, true)) ||
+
             ($estadoRecursoDevolucion !== '' &&
                 !in_array($estadoRecursoDevolucion, $estadosRecurso, true))
         ) {
-            volverPrestamos('El estado del recurso seleccionado no es válido.');
+            throw new Exception('El estado del recurso seleccionado no es válido.');
         }
 
         if ($estadoRecursoEntrega === 'Dañado') {
-            volverPrestamos('No puedes registrar un préstamo nuevo con el recurso dañado al entregarlo.');
+            throw new Exception('No puedes registrar un préstamo nuevo con el recurso dañado al entregarlo.');
         }
 
         if ($estado === 'Devuelto' && $estadoRecursoDevolucion === '') {
-            volverPrestamos('Selecciona el estado del recurso al devolverlo.');
+            throw new Exception('Selecciona el estado del recurso al devolverlo.');
         }
 
         if (longitudTexto($observaciones) > 150) {
-            volverPrestamos('Las observaciones del préstamo no pueden superar los 150 caracteres.');
+            throw new Exception('Las observaciones del préstamo no pueden superar los 150 caracteres.');
         }
 
         if (longitudTexto($observacionesDevolucion) > 500) {
-            volverPrestamos('Las observaciones de devolución no pueden superar los 500 caracteres.');
+            throw new Exception('Las observaciones de devolución no pueden superar los 500 caracteres.');
         }
 
         $conexion->beginTransaction();
@@ -451,7 +646,9 @@ try {
             FOR UPDATE
         ");
 
-        $consultaAnterior->execute([':id' => $idPrestamo]);
+        $consultaAnterior->execute([
+            ':id' => $idPrestamo
+        ]);
 
         $anterior = $consultaAnterior->fetch(PDO::FETCH_ASSOC);
 
@@ -459,9 +656,22 @@ try {
             throw new Exception('El préstamo que intentas editar no existe.');
         }
 
-        /*
-           Un empleado solamente puede modificar sus propios préstamos.
-        */
+        if (
+            $anterior['estado'] === 'Devuelto' &&
+            $estado !== 'Devuelto'
+        ) {
+            throw new Exception('Un préstamo devuelto no puede volver a un estado activo.');
+        }
+
+        if (
+            $anterior['estado'] === 'Devuelto' &&
+            (
+                (int)$anterior['id_recurso'] !== $idRecurso ||
+                (int)$anterior['cantidad'] !== $cantidad
+            )
+        ) {
+            throw new Exception('No puedes modificar el recurso o la cantidad de un préstamo ya devuelto.');
+        }
 
         if (
             $esEmpleado &&
@@ -471,36 +681,48 @@ try {
         }
 
         $idEmpleado = $esAdministrador
-            ? ($anterior['id_empleado'] !== null
-                ? (int)$anterior['id_empleado']
-                : null)
+            ? (
+                $anterior['id_empleado'] !== null
+                    ? (int)$anterior['id_empleado']
+                    : null
+            )
             : $idEmpleadoSesion;
 
         validarEmpleado($conexion, $idEmpleado);
-        validarUsuarioReceptor($conexion, $idUsuarioEntrega);
+
+        validarUsuarioReceptor(
+            $conexion,
+            $idUsuarioEntrega
+        );
 
         $idRecursoAnterior = (int)$anterior['id_recurso'];
 
-        /*
-           Bloquear los recursos en orden para reducir
-           conflictos cuando se cambia el recurso del préstamo.
-        */
+        $idsRecursos = array_unique([
+            $idRecursoAnterior,
+            $idRecurso
+        ]);
 
-        $idsRecursos = array_unique([$idRecursoAnterior, $idRecurso]);
         sort($idsRecursos);
 
         $recursosBloqueados = [];
 
         foreach ($idsRecursos as $idBloqueo) {
-            $recursosBloqueados[$idBloqueo] = obtenerRecursoBloqueado(
-                $conexion,
-                $idBloqueo
-            );
+
+            $recursosBloqueados[$idBloqueo] =
+                obtenerRecursoBloqueado(
+                    $conexion,
+                    $idBloqueo
+                );
+
         }
 
         $recurso = $recursosBloqueados[$idRecurso];
 
-        $ocupaRecurso = in_array($estado, ['Activo', 'Vencido'], true);
+        $ocupaRecurso = in_array(
+            $estado,
+            ['Activo', 'Vencido'],
+            true
+        );
 
         if ($ocupaRecurso) {
 
@@ -508,27 +730,44 @@ try {
                 throw new Exception('No se puede asignar un recurso dañado.');
             }
 
-            if (in_array($recurso['disponibilidad'], ['Mantenimiento', 'Fuera de servicio'], true)) {
+            if (
+                in_array(
+                    $recurso['disponibilidad'],
+                    ['Mantenimiento', 'Fuera de servicio'],
+                    true
+                )
+            ) {
                 throw new Exception('El recurso está en mantenimiento o fuera de servicio.');
             }
 
-            if (recursoTienePrestamoActivo($conexion, $idRecurso, $idPrestamo)) {
-                throw new Exception('El recurso ya tiene otro préstamo activo.');
-            }
+            $disponibles = max(
+                0,
+                (int)$recurso['stock_total'] -
+                unidadesReservadas(
+                    $conexion,
+                    $idRecurso,
+                    $idPrestamo
+                )
+            );
 
-            if (
-                $idRecursoAnterior !== $idRecurso &&
-                $recurso['disponibilidad'] !== 'Disponible'
-            ) {
-                throw new Exception('El nuevo recurso no está disponible.');
+            if ($cantidad > $disponibles) {
+                throw new Exception('La cantidad solicitada supera las unidades disponibles.');
             }
         }
 
+        /*
+         * NO MODIFICAR id_cuenta_responsable.
+         *
+         * El responsable original se conserva al editar.
+         */
+
         $actualizar = $conexion->prepare("
             UPDATE prestamo SET
+
                 id_empleado = :empleado,
                 id_usuario_entrega = :usuario,
                 id_recurso = :recurso,
+                cantidad = :cantidad,
                 fecha_solicitud = :solicitud,
                 fecha_entrega = :entrega,
                 fecha_devolucion_programada = :programada,
@@ -538,6 +777,7 @@ try {
                 estado_recurso_devolucion = :estado_devolucion,
                 observaciones = :observaciones,
                 observaciones_devolucion = :observaciones_devolucion
+
             WHERE id_prestamo = :id
         ");
 
@@ -545,32 +785,44 @@ try {
             ':empleado' => $idEmpleado,
             ':usuario' => $idUsuarioEntrega,
             ':recurso' => $idRecurso,
+            ':cantidad' => $cantidad,
             ':solicitud' => $fechaSolicitud,
             ':entrega' => $fechaEntrega,
             ':programada' => $fechaProgramada,
-            ':fecha_real' => $fechaReal !== '' ? $fechaReal : null,
+
+            ':fecha_real' => $fechaReal !== ''
+                ? $fechaReal
+                : null,
+
             ':estado' => $estado,
+
             ':estado_entrega' => $estadoRecursoEntrega !== ''
                 ? $estadoRecursoEntrega
                 : null,
+
             ':estado_devolucion' => $estadoRecursoDevolucion !== ''
                 ? $estadoRecursoDevolucion
                 : null,
+
             ':observaciones' => $observaciones !== ''
                 ? $observaciones
                 : null,
+
             ':observaciones_devolucion' => $observacionesDevolucion !== ''
                 ? $observacionesDevolucion
                 : null,
+
             ':id' => $idPrestamo
         ]);
 
         /*
-           Al devolver el recurso se actualiza también
-           su estado físico en la tabla recurso.
-        */
+         * ACTUALIZAR ESTADO FÍSICO DEL RECURSO
+         */
 
-        if ($estado === 'Devuelto' && $estadoRecursoDevolucion !== '') {
+        if (
+            $estado === 'Devuelto' &&
+            $estadoRecursoDevolucion !== ''
+        ) {
 
             $actualizarEstadoRecurso = $conexion->prepare("
                 UPDATE recurso
@@ -582,15 +834,73 @@ try {
                 ':estado' => $estadoRecursoDevolucion,
                 ':id' => $idRecurso
             ]);
+
         }
 
-        actualizarDisponibilidad($conexion, $idRecursoAnterior);
+        /*
+         * REGISTRAR DEVOLUCIÓN
+         */
+
+        if (
+            $estado === 'Devuelto' &&
+            $anterior['estado'] !== 'Devuelto'
+        ) {
+
+            $registrarDevolucion = $conexion->prepare("
+                INSERT INTO devolucion (
+                    id_prestamo,
+                    cantidad_devuelta,
+                    fecha_devolucion,
+                    fecha_hora,
+                    id_cuenta_registra,
+                    estado_recurso,
+                    observaciones
+                ) VALUES (
+                    :prestamo,
+                    :cantidad,
+                    :fecha,
+                    CURRENT_TIMESTAMP,
+                    :cuenta,
+                    :estado_recurso,
+                    :observaciones
+                )
+            ");
+
+            $registrarDevolucion->execute([
+                ':prestamo' => $idPrestamo,
+                ':cantidad' => (int)$anterior['cantidad'],
+                ':fecha' => $fechaReal,
+                ':cuenta' => $idCuentaResponsable,
+                ':estado_recurso' => $estadoRecursoDevolucion,
+
+                ':observaciones' => $observacionesDevolucion !== ''
+                    ? $observacionesDevolucion
+                    : null
+            ]);
+
+        }
+
+        actualizarDisponibilidad(
+            $conexion,
+            $idRecursoAnterior
+        );
 
         if ($idRecursoAnterior !== $idRecurso) {
-            actualizarDisponibilidad($conexion, $idRecurso);
-        } else {
-            actualizarDisponibilidad($conexion, $idRecurso);
+
+            actualizarDisponibilidad(
+                $conexion,
+                $idRecurso
+            );
+
         }
+
+        rs_registrar_historial(
+            $idPrestamo,
+            'Prestamo actualizado',
+            'Estado: ' . $anterior['estado'] . ' -> ' . $estado .
+                '; cantidad: ' . (int)$anterior['cantidad'] . ' -> ' . $cantidad,
+            $idCuentaResponsable
+        );
 
         $conexion->commit();
 
@@ -604,25 +914,32 @@ try {
     elseif ($accion === 'eliminar') {
 
         if (!$esAdministrador) {
-            volverPrestamos('Solo el administrador puede eliminar préstamos.');
+            throw new Exception('Solo el administrador puede eliminar préstamos.');
         }
 
-        $idPrestamo = idPositivo($_POST['id_prestamo'] ?? null);
+        $idPrestamo = idPositivo(
+            $_POST['id_prestamo'] ?? null
+        );
 
         if (!$idPrestamo) {
-            volverPrestamos('El identificador del préstamo no es válido.');
+            throw new Exception('El identificador del préstamo no es válido.');
         }
 
         $conexion->beginTransaction();
 
         $consulta = $conexion->prepare("
-            SELECT id_prestamo, id_recurso, estado
+            SELECT
+                id_prestamo,
+                id_recurso,
+                estado
             FROM prestamo
             WHERE id_prestamo = :id
             FOR UPDATE
         ");
 
-        $consulta->execute([':id' => $idPrestamo]);
+        $consulta->execute([
+            ':id' => $idPrestamo
+        ]);
 
         $prestamo = $consulta->fetch(PDO::FETCH_ASSOC);
 
@@ -630,25 +947,34 @@ try {
             throw new Exception('El préstamo que intentas eliminar no existe.');
         }
 
-        /*
-           Se conservan los préstamos que ya representan
-           una entrega, devolución o vencimiento.
-        */
-
-        if (!in_array($prestamo['estado'], ['Pendiente', 'Cancelado'], true)) {
-            throw new Exception('No se puede eliminar un préstamo activo, vencido o devuelto. Cambia su estado a Cancelado si corresponde.');
+        if (
+            !in_array(
+                $prestamo['estado'],
+                ['Pendiente', 'Cancelado'],
+                true
+            )
+        ) {
+            throw new Exception('No se puede eliminar un préstamo activo, vencido o devuelto.');
         }
 
-        obtenerRecursoBloqueado($conexion, (int)$prestamo['id_recurso']);
+        obtenerRecursoBloqueado(
+            $conexion,
+            (int)$prestamo['id_recurso']
+        );
 
         $eliminar = $conexion->prepare("
             DELETE FROM prestamo
             WHERE id_prestamo = :id
         ");
 
-        $eliminar->execute([':id' => $idPrestamo]);
+        $eliminar->execute([
+            ':id' => $idPrestamo
+        ]);
 
-        actualizarDisponibilidad($conexion, (int)$prestamo['id_recurso']);
+        actualizarDisponibilidad(
+            $conexion,
+            (int)$prestamo['id_recurso']
+        );
 
         $conexion->commit();
 
@@ -656,7 +982,9 @@ try {
     }
 
     else {
-        volverPrestamos('La acción solicitada no es válida.');
+
+        throw new Exception('La acción solicitada no es válida.');
+
     }
 
 } catch (Throwable $e) {
@@ -665,7 +993,9 @@ try {
         $conexion->rollBack();
     }
 
-    error_log('Error PrestamoController: ' . $e->getMessage());
+    error_log(
+        'Error PrestamoController: ' . $e->getMessage()
+    );
 
     $mensaje = $e instanceof PDOException
         ? 'No se pudo completar la operación. Revisa la conexión, los datos y las relaciones de la base de datos.'
